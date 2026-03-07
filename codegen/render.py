@@ -150,6 +150,7 @@ class CodeRenderer:
         files: Dict[str, str] = {}
         backend_root = project.backend.output_dir.strip("/") or "backend"
         java_root = f"{backend_root}/src/main/java/{project.base_package_path}"
+        test_root = f"{backend_root}/src/test/java/{project.base_package_path}"
         resource_root = f"{backend_root}/src/main/resources"
 
         base_context = {
@@ -279,6 +280,9 @@ class CodeRenderer:
             files[f"{java_root}/controller/{table.controller_name}.java"] = (
                 self._render("controller/Controller.java.j2", **table_context)
             )
+            files[f"{test_root}/controller/{table.controller_name}Test.java"] = (
+                self._render("test/ControllerTest.java.j2", **table_context)
+            )
             files[f"{java_root}/dto/{table.create_dto_name}.java"] = self._render(
                 "dto/CreateRequest.java.j2",
                 **table_context,
@@ -299,6 +303,14 @@ class CodeRenderer:
                 dto_name=table.query_dto_name,
                 dto_fields=query_dto_fields,
                 dto_imports=self._dto_imports(query_dto_fields),
+            )
+            
+            export_fields = self._export_dto_fields(table, locale=project.frontend.locale)
+            files[f"{java_root}/dto/{table.entity_name}ExportDto.java"] = self._render(
+                "dto/ExportDto.java.j2",
+                **table_context,
+                export_fields=export_fields,
+                export_imports=self._java_imports([f["java_type"] for f in export_fields])
             )
 
         for relation in project.relations:
@@ -383,6 +395,18 @@ class CodeRenderer:
                 }
             )
 
+        return fields
+
+    def _export_dto_fields(self, table: TableIR, locale: str) -> List[Dict[str, str]]:
+        fields: List[Dict[str, str]] = []
+        for field in table.fields:
+            if field.logic_delete or field.java_type == "String" and "password" in field.property_name.lower():
+                continue
+            fields.append({
+                "property_name": field.property_name,
+                "java_type": field.java_type,
+                "label": self._frontend_label(field, field.property_name, locale)
+            })
         return fields
 
     def _query_dto_fields(

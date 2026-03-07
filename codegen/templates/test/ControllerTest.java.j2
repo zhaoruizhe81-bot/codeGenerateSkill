@@ -1,0 +1,70 @@
+package {{ package }}.controller;
+
+import {{ package }}.dto.{{ table.create_dto_name }};
+import {{ package }}.dto.{{ table.update_dto_name }};
+import {{ package }}.entity.{{ table.entity_name }};
+import {{ package }}.service.{{ table.service_name }};
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MockMvc;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+
+@SpringBootTest
+@AutoConfigureMockMvc(addFilters = false) // Disable security filters for simple unit testing
+public class {{ table.controller_name }}Test {
+
+    @Autowired
+    private MockMvc mockMvc;
+
+    @Autowired
+    private ObjectMapper objectMapper;
+
+    @MockBean
+    private {{ table.service_name }} {{ table.object_name }}Service;
+
+    @Test
+    public void testGetById() throws Exception {
+        {{ table.entity_name }} mockEntity = new {{ table.entity_name }}();
+        // Setup mock entity properties if needed
+        when({{ table.object_name }}Service.getById(any())).thenReturn(mockEntity);
+
+        mockMvc.perform(get("{{ project.api_prefix }}/{{ table.resource_name }}/1")
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(0));
+    }
+
+    @Test
+    public void testCreate() throws Exception {
+        {{ table.create_dto_name }} request = new {{ table.create_dto_name }}();
+        // Setup request properties if needed
+        
+        when({{ table.object_name }}Service.create(any())).thenReturn(null); // Assuming primary key return
+
+        mockMvc.perform(post("{{ project.api_prefix }}/{{ table.resource_name }}")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(0));
+    }
+
+    @Test
+    public void testDelete() throws Exception {
+        when({{ table.object_name }}Service.deleteById(any())).thenReturn(true);
+
+        mockMvc.perform(delete("{{ project.api_prefix }}/{{ table.resource_name }}/1")
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(0));
+    }
+}

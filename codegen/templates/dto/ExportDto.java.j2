@@ -1,0 +1,17 @@
+package {{ package }}.dto;
+
+import com.alibaba.excel.annotation.ExcelProperty;
+import lombok.Data;
+
+{% for import_item in export_imports %}
+import {{ import_item }};
+{% endfor %}
+
+@Data
+public class {{ table.entity_name }}ExportDto {
+
+{% for field in export_fields %}
+    @ExcelProperty("{{ field.label }}")
+    private {{ field.java_type }} {{ field.property_name }};
+{% endfor %}
+}

@@ -5,6 +5,7 @@ import {{ package }}.common.Result;
 import {{ package }}.dto.{{ table.create_dto_name }};
 import {{ package }}.dto.{{ table.query_dto_name }};
 import {{ package }}.dto.{{ table.update_dto_name }};
+import {{ package }}.dto.{{ table.entity_name }}ExportDto;
 import {{ package }}.entity.{{ table.entity_name }};
 {% for relation in relation_methods %}import {{ package }}.dto.{{ relation.dto_name }};
 import {{ package }}.dto.{{ relation.query_name }};
@@ -12,6 +13,8 @@ import {{ package }}.dto.{{ relation.query_name }};
 {% if table.auth and table.auth.enabled %}
 import org.springframework.security.access.prepost.PreAuthorize;
 {% endif %}
+import com.alibaba.excel.EasyExcel;
+import org.springframework.beans.BeanUtils;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -22,6 +25,12 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.net.URLEncoder;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("{{ project.api_prefix }}/{{ table.resource_name }}")
@@ -75,6 +84,29 @@ public class {{ table.controller_name }} {
     public Result<PageResult<{{ table.entity_name }}>> page(@Validated @ModelAttribute {{ table.query_dto_name }} query) {
         return Result.success({{ table.object_name }}Service.page(query));
     }
+
+{% if table.auth and table.auth.enabled %}
+    @PreAuthorize("{% if table.auth.roles %}hasAnyRole({{ table.auth.roles_str }}){% endif %}{% if table.auth.roles and table.auth.permissions.query %} or {% endif %}{% if table.auth.permissions.query %}hasAuthority('{{ table.auth.permissions.query }}'){% endif %}")
+{% endif %}
+    @GetMapping("/export")
+    public void export(HttpServletResponse response) throws IOException {
+        response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        response.setCharacterEncoding("utf-8");
+        String fileName = URLEncoder.encode("{{ table.entity_name }}Export", "UTF-8").replaceAll("\\+", "%20");
+        response.setHeader("Content-disposition", "attachment;filename*=utf-8''" + fileName + ".xlsx");
+        
+        List<{{ table.entity_name }}> list = {{ table.object_name }}Service.list();
+        List<{{ table.entity_name }}ExportDto> exportList = list.stream().map(item -> {
+            {{ table.entity_name }}ExportDto dto = new {{ table.entity_name }}ExportDto();
+            BeanUtils.copyProperties(item, dto);
+            return dto;
+        }).collect(Collectors.toList());
+        
+        EasyExcel.write(response.getOutputStream(), {{ table.entity_name }}ExportDto.class)
+                .sheet("Sheet1")
+                .doWrite(exportList);
+    }
+
 {% for relation in relation_methods %}
 {% if relation.auth and relation.auth.enabled %}
     @PreAuthorize("{% if relation.auth.roles %}hasAnyRole({{ relation.auth.roles_str }}){% endif %}{% if relation.auth.roles and relation.auth.permissions.query %} or {% endif %}{% if relation.auth.permissions.query %}hasAuthority('{{ relation.auth.permissions.query }}'){% endif %}")
