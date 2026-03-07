@@ -1,0 +1,2 @@
+# codeGenerateSkill
+借助AI快速生成crud代码节省token让上下文保持在业务逻辑
