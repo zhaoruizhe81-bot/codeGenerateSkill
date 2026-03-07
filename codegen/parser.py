@@ -24,6 +24,11 @@ from .ir import (
     SortableFieldIR,
     TableIR,
     TableFrontendIR,
+    SecurityIR,
+    JwtConfigIR,
+    RbacConfigIR,
+    TableAuthIR,
+    PermissionIR,
 )
 from .schema import validate_schema
 from .type_mapping import db_to_java, snake_to_camel, snake_to_pascal
@@ -64,6 +69,29 @@ def parse_config(payload: Dict[str, Any]) -> ProjectIR:
     backend_cfg = payload.get("backend", {})
     frontend_cfg = payload.get("frontend", {})
     global_cfg = payload["global"]
+
+    security_cfg = payload.get("security", {})
+    jwt_cfg = security_cfg.get("jwt", {})
+    rbac_cfg = security_cfg.get("rbac", {})
+    
+    security_ir = SecurityIR(
+        enabled=bool(security_cfg.get("enabled", False)),
+        type=str(security_cfg.get("type", "jwt")),
+        jwt=JwtConfigIR(
+            secret=str(jwt_cfg.get("secret", "default-secret-key-must-be-at-least-256-bits")),
+            expiration=int(jwt_cfg.get("expiration", 86400)),
+            header=str(jwt_cfg.get("header", "Authorization")),
+            prefix=str(jwt_cfg.get("prefix", "Bearer ")),
+        ),
+        rbac=RbacConfigIR(
+            strategy=str(rbac_cfg.get("strategy", "role_permission")),
+            super_admin_role=str(rbac_cfg.get("superAdminRole", "ROLE_ADMIN")),
+            default_roles=list(rbac_cfg.get("defaultRoles", [])),
+        )
+    )
+
+    if security_ir.enabled:
+        _inject_rbac_tables(payload, rbac_cfg)
 
     if not _is_valid_package(project_cfg["basePackage"]):
         issues.append(
@@ -243,6 +271,32 @@ def parse_config(payload: Dict[str, Any]) -> ProjectIR:
                 continue
             seed_data.append(dict(seed_row))
 
+        auth_cfg = table_cfg.get("auth")
+        table_auth_ir = None
+        if auth_cfg is not None:
+            permissions_cfg = auth_cfg.get("permissions", {})
+            table_auth_ir = TableAuthIR(
+                enabled=bool(auth_cfg.get("enabled", True)),
+                roles=list(auth_cfg.get("roles", [])),
+                permissions=PermissionIR(
+                    query=permissions_cfg.get("query"),
+                    create=permissions_cfg.get("create"),
+                    update=permissions_cfg.get("update"),
+                    delete=permissions_cfg.get("delete"),
+                )
+            )
+        elif security_ir.enabled:
+            table_auth_ir = TableAuthIR(
+                enabled=True,
+                roles=[],
+                permissions=PermissionIR(
+                    query=f"{table_name}:view",
+                    create=f"{table_name}:add",
+                    update=f"{table_name}:edit",
+                    delete=f"{table_name}:delete",
+                )
+            )
+
         table_ir = TableIR(
             name=table_name,
             comment=table_cfg.get("comment", ""),
@@ -266,6 +320,7 @@ def parse_config(payload: Dict[str, Any]) -> ProjectIR:
                     table_cfg.get("frontend", {}).get("menuVisible", True)
                 ),
             ),
+            auth=table_auth_ir,
         )
 
         table_map[table_name] = table_ir
@@ -737,6 +792,21 @@ def parse_config(payload: Dict[str, Any]) -> ProjectIR:
             continue
         left_methods.add(method_name)
 
+        auth_cfg = relation_cfg.get("auth")
+        relation_auth_ir = None
+        if auth_cfg is not None:
+            relation_auth_ir = TableAuthIR(
+                enabled=bool(auth_cfg.get("enabled", True)),
+                roles=list(auth_cfg.get("roles", [])),
+                permissions=PermissionIR()
+            )
+        elif security_ir.enabled:
+             relation_auth_ir = TableAuthIR(
+                enabled=True,
+                roles=[],
+                permissions=PermissionIR(query=f"{relation_name}:view")
+            )
+
         relation_ir = RelationIR(
             name=relation_name,
             left_table=left_table,
@@ -759,6 +829,7 @@ def parse_config(payload: Dict[str, Any]) -> ProjectIR:
                     relation_cfg.get("frontend", {}).get("menuVisible", True)
                 ),
             ),
+            auth=relation_auth_ir,
         )
         relations.append(relation_ir)
 
@@ -790,6 +861,7 @@ def parse_config(payload: Dict[str, Any]) -> ProjectIR:
         date_time_format=global_cfg.get("dateTimeFormat", "yyyy-MM-dd HH:mm:ss"),
         enable_swagger=bool(global_cfg.get("enableSwagger", False)),
         application_name=project_cfg["name"],
+        security=security_ir,
         backend=BackendIR(
             output_dir=backend_cfg.get("outputDir", "backend"),
         ),
@@ -851,3 +923,93 @@ def _is_valid_package(package_name: str) -> bool:
 
 def _is_valid_java_identifier(name: str) -> bool:
     return re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", name) is not None
+
+
+def _inject_rbac_tables(payload: Dict[str, Any], rbac_config: Dict[str, Any]) -> None:
+    existing_tables = {t["name"] for t in payload.get("tables", [])}
+    rbac_tables = []
+    
+    if "sys_user" not in existing_tables:
+        rbac_tables.append({
+            "name": "sys_user",
+            "comment": "System User",
+            "entityName": "SysUser",
+            "primaryKey": "id",
+            "queryableFields": [
+                {"name": "username", "operator": "LIKE"}
+            ],
+            "fields": [
+                {"name": "id", "type": "bigint", "nullable": False, "idType": "AUTO", "comment": "ID"},
+                {"name": "username", "type": "varchar(64)", "nullable": False, "unique": True, "comment": "Username"},
+                {"name": "password", "type": "varchar(255)", "nullable": False, "comment": "Password"},
+                {"name": "enabled", "type": "tinyint(1)", "nullable": False, "comment": "Enabled status"},
+                {"name": "created_at", "type": "datetime", "nullable": False, "autoFill": "INSERT", "comment": "Created Time"}
+            ],
+            "seedData": [
+                {"id": 1, "username": "admin", "password": "$2a$10$7JB720yubVSZvUI0rEqK/.VqGOZTH.ulu33dHOiBE8ByOhJIrdAu2", "enabled": True, "created_at": "2024-01-01 00:00:00"}
+            ]
+        })
+    if "sys_role" not in existing_tables:
+        rbac_tables.append({
+            "name": "sys_role",
+            "comment": "System Role",
+            "entityName": "SysRole",
+            "primaryKey": "id",
+            "queryableFields": [{"name": "role_code", "operator": "EQ"}],
+            "fields": [
+                {"name": "id", "type": "bigint", "nullable": False, "idType": "AUTO", "comment": "ID"},
+                {"name": "role_name", "type": "varchar(64)", "nullable": False, "comment": "Role Name"},
+                {"name": "role_code", "type": "varchar(64)", "nullable": False, "unique": True, "comment": "Role Code"},
+                {"name": "created_at", "type": "datetime", "nullable": False, "autoFill": "INSERT", "comment": "Created Time"}
+            ],
+            "seedData": [
+                {"id": 1, "role_name": "Administrator", "role_code": rbac_config.get("superAdminRole", "ROLE_ADMIN"), "created_at": "2024-01-01 00:00:00"}
+            ]
+        })
+    if "sys_user_role" not in existing_tables:
+        rbac_tables.append({
+            "name": "sys_user_role",
+            "comment": "User Role Mapping",
+            "entityName": "SysUserRole",
+            "primaryKey": "id",
+            "queryableFields": [{"name": "user_id", "operator": "EQ"}],
+            "fields": [
+                {"name": "id", "type": "bigint", "nullable": False, "idType": "AUTO", "comment": "ID"},
+                {"name": "user_id", "type": "bigint", "nullable": False, "comment": "User ID"},
+                {"name": "role_id", "type": "bigint", "nullable": False, "comment": "Role ID"}
+            ],
+            "seedData": [
+                {"id": 1, "user_id": 1, "role_id": 1}
+            ]
+        })
+    if "sys_menu_permission" not in existing_tables:
+        rbac_tables.append({
+            "name": "sys_menu_permission",
+            "comment": "Menu and Permission",
+            "entityName": "SysMenuPermission",
+            "primaryKey": "id",
+            "queryableFields": [{"name": "parent_id", "operator": "EQ"}],
+            "fields": [
+                {"name": "id", "type": "bigint", "nullable": False, "idType": "AUTO", "comment": "ID"},
+                {"name": "parent_id", "type": "bigint", "nullable": False, "comment": "Parent ID"},
+                {"name": "name", "type": "varchar(64)", "nullable": False, "comment": "Name"},
+                {"name": "permission_str", "type": "varchar(128)", "nullable": True, "comment": "Permission String"},
+                {"name": "type", "type": "tinyint", "nullable": False, "comment": "1:Menu 2:Button"},
+                {"name": "path", "type": "varchar(255)", "nullable": True, "comment": "Route Path"}
+            ]
+        })
+    if "sys_role_permission" not in existing_tables:
+        rbac_tables.append({
+            "name": "sys_role_permission",
+            "comment": "Role Permission Mapping",
+            "entityName": "SysRolePermission",
+            "primaryKey": "id",
+            "queryableFields": [{"name": "role_id", "operator": "EQ"}],
+            "fields": [
+                {"name": "id", "type": "bigint", "nullable": False, "idType": "AUTO", "comment": "ID"},
+                {"name": "role_id", "type": "bigint", "nullable": False, "comment": "Role ID"},
+                {"name": "permission_id", "type": "bigint", "nullable": False, "comment": "Permission ID"}
+            ]
+        })
+
+    payload["tables"] = rbac_tables + payload.get("tables", [])

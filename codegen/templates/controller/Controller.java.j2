@@ -9,6 +9,9 @@ import {{ package }}.entity.{{ table.entity_name }};
 {% for relation in relation_methods %}import {{ package }}.dto.{{ relation.dto_name }};
 import {{ package }}.dto.{{ relation.query_name }};
 {% endfor %}import {{ package }}.service.{{ table.service_name }};
+{% if table.auth and table.auth.enabled %}
+import org.springframework.security.access.prepost.PreAuthorize;
+{% endif %}
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -30,16 +33,25 @@ public class {{ table.controller_name }} {
         this.{{ table.object_name }}Service = {{ table.object_name }}Service;
     }
 
+{% if table.auth and table.auth.enabled %}
+    @PreAuthorize("{% if table.auth.roles %}hasAnyRole({{ table.auth.roles_str }}){% endif %}{% if table.auth.roles and table.auth.permissions.create %} or {% endif %}{% if table.auth.permissions.create %}hasAuthority('{{ table.auth.permissions.create }}'){% endif %}")
+{% endif %}
     @PostMapping
     public Result<{{ table.primary_key_java_type }}> create(@Validated @RequestBody {{ table.create_dto_name }} request) {
         return Result.success({{ table.object_name }}Service.create(request));
     }
 
+{% if table.auth and table.auth.enabled %}
+    @PreAuthorize("{% if table.auth.roles %}hasAnyRole({{ table.auth.roles_str }}){% endif %}{% if table.auth.roles and table.auth.permissions.query %} or {% endif %}{% if table.auth.permissions.query %}hasAuthority('{{ table.auth.permissions.query }}'){% endif %}")
+{% endif %}
     @GetMapping("/{id}")
     public Result<{{ table.entity_name }}> getById(@PathVariable("id") {{ table.primary_key_java_type }} id) {
         return Result.success({{ table.object_name }}Service.getById(id));
     }
 
+{% if table.auth and table.auth.enabled %}
+    @PreAuthorize("{% if table.auth.roles %}hasAnyRole({{ table.auth.roles_str }}){% endif %}{% if table.auth.roles and table.auth.permissions.update %} or {% endif %}{% if table.auth.permissions.update %}hasAuthority('{{ table.auth.permissions.update }}'){% endif %}")
+{% endif %}
     @PutMapping("/{id}")
     public Result<Boolean> update(
             @PathVariable("id") {{ table.primary_key_java_type }} id,
@@ -48,16 +60,25 @@ public class {{ table.controller_name }} {
         return Result.success({{ table.object_name }}Service.update(id, request));
     }
 
+{% if table.auth and table.auth.enabled %}
+    @PreAuthorize("{% if table.auth.roles %}hasAnyRole({{ table.auth.roles_str }}){% endif %}{% if table.auth.roles and table.auth.permissions.delete %} or {% endif %}{% if table.auth.permissions.delete %}hasAuthority('{{ table.auth.permissions.delete }}'){% endif %}")
+{% endif %}
     @DeleteMapping("/{id}")
     public Result<Boolean> delete(@PathVariable("id") {{ table.primary_key_java_type }} id) {
         return Result.success({{ table.object_name }}Service.deleteById(id));
     }
 
+{% if table.auth and table.auth.enabled %}
+    @PreAuthorize("{% if table.auth.roles %}hasAnyRole({{ table.auth.roles_str }}){% endif %}{% if table.auth.roles and table.auth.permissions.query %} or {% endif %}{% if table.auth.permissions.query %}hasAuthority('{{ table.auth.permissions.query }}'){% endif %}")
+{% endif %}
     @GetMapping
     public Result<PageResult<{{ table.entity_name }}>> page(@Validated @ModelAttribute {{ table.query_dto_name }} query) {
         return Result.success({{ table.object_name }}Service.page(query));
     }
 {% for relation in relation_methods %}
+{% if relation.auth and relation.auth.enabled %}
+    @PreAuthorize("{% if relation.auth.roles %}hasAnyRole({{ relation.auth.roles_str }}){% endif %}{% if relation.auth.roles and relation.auth.permissions.query %} or {% endif %}{% if relation.auth.permissions.query %}hasAuthority('{{ relation.auth.permissions.query }}'){% endif %}")
+{% endif %}
     @GetMapping("/relations/{{ relation.endpoint_name }}")
     public Result<PageResult<{{ relation.dto_name }}>> {{ relation.method_name }}(@Validated @ModelAttribute {{ relation.query_name }} query) {
         return Result.success({{ table.object_name }}Service.{{ relation.method_name }}(query));

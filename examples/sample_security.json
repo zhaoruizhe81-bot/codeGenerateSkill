@@ -1,0 +1,60 @@
+{
+  "project": {
+    "groupId": "com.example",
+    "artifactId": "secure-admin",
+    "name": "secure-admin",
+    "basePackage": "com.example.admin",
+    "bootVersion": "2.7.18",
+    "javaVersion": 8
+  },
+  "datasource": {
+    "url": "jdbc:mysql://127.0.0.1:3306/secure_admin?useSSL=false&serverTimezone=UTC",
+    "databaseName": "secure_admin",
+    "username": "root",
+    "password": "password",
+    "driverClassName": "com.mysql.cj.jdbc.Driver"
+  },
+  "security": {
+    "enabled": true,
+    "jwt": {
+      "secret": "my-super-secret-key-that-is-very-long-and-secure"
+    },
+    "rbac": {
+      "superAdminRole": "ADMIN"
+    }
+  },
+  "frontend": {
+    "enabled": true,
+    "appTitle": "Secure Admin Panel",
+    "locale": "en-US"
+  },
+  "global": {
+    "apiPrefix": "/api",
+    "author": "codegen",
+    "dateTimeFormat": "yyyy-MM-dd HH:mm:ss",
+    "enableSwagger": false
+  },
+  "tables": [
+    {
+      "name": "products",
+      "comment": "Products table",
+      "entityName": "Product",
+      "primaryKey": "id",
+      "auth": {
+        "roles": ["ADMIN", "MANAGER"],
+        "permissions": {
+          "delete": "product:force_delete"
+        }
+      },
+      "queryableFields": [
+        {"name": "name", "operator": "LIKE"}
+      ],
+      "fields": [
+        {"name": "id", "type": "bigint", "nullable": false, "idType": "AUTO", "comment": "ID"},
+        {"name": "name", "type": "varchar(128)", "nullable": false, "comment": "Product Name"},
+        {"name": "price", "type": "decimal(10,2)", "nullable": false, "comment": "Price"}
+      ]
+    }
+  ],
+  "relations": []
+}

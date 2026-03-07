@@ -1,0 +1,83 @@
+package {{ package }}.security;
+
+import {{ package }}.entity.SysUser;
+import {{ package }}.entity.SysRole;
+import {{ package }}.entity.SysUserRole;
+import {{ package }}.entity.SysMenuPermission;
+import {{ package }}.entity.SysRolePermission;
+import {{ package }}.mapper.SysUserMapper;
+import {{ package }}.mapper.SysRoleMapper;
+import {{ package }}.mapper.SysUserRoleMapper;
+import {{ package }}.mapper.SysMenuPermissionMapper;
+import {{ package }}.mapper.SysRolePermissionMapper;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.stereotype.Service;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
+
+@Service
+public class UserDetailsServiceImpl implements UserDetailsService {
+
+    private final SysUserMapper sysUserMapper;
+    private final SysRoleMapper sysRoleMapper;
+    private final SysUserRoleMapper sysUserRoleMapper;
+    private final SysRolePermissionMapper sysRolePermissionMapper;
+    private final SysMenuPermissionMapper sysMenuPermissionMapper;
+
+    public UserDetailsServiceImpl(
+            SysUserMapper sysUserMapper,
+            SysRoleMapper sysRoleMapper,
+            SysUserRoleMapper sysUserRoleMapper,
+            SysRolePermissionMapper sysRolePermissionMapper,
+            SysMenuPermissionMapper sysMenuPermissionMapper) {
+        this.sysUserMapper = sysUserMapper;
+        this.sysRoleMapper = sysRoleMapper;
+        this.sysUserRoleMapper = sysUserRoleMapper;
+        this.sysRolePermissionMapper = sysRolePermissionMapper;
+        this.sysMenuPermissionMapper = sysMenuPermissionMapper;
+    }
+
+    @Override
+    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+        SysUser sysUser = sysUserMapper.selectOne(new QueryWrapper<SysUser>().eq("username", username));
+        if (sysUser == null) {
+            throw new UsernameNotFoundException("User not found with username: " + username);
+        }
+
+        List<GrantedAuthority> authorities = new ArrayList<>();
+
+        // Load roles
+        List<SysUserRole> userRoles = sysUserRoleMapper.selectList(new QueryWrapper<SysUserRole>().eq("user_id", sysUser.getId()));
+        List<Long> roleIds = userRoles.stream().map(SysUserRole::getRoleId).collect(Collectors.toList());
+
+        if (!roleIds.isEmpty()) {
+            List<SysRole> roles = sysRoleMapper.selectBatchIds(roleIds);
+            for (SysRole role : roles) {
+                authorities.add(new SimpleGrantedAuthority(role.getRoleCode()));
+            }
+
+            // Load permissions
+            List<SysRolePermission> rolePermissions = sysRolePermissionMapper.selectList(new QueryWrapper<SysRolePermission>().in("role_id", roleIds));
+            List<Long> permissionIds = rolePermissions.stream().map(SysRolePermission::getPermissionId).collect(Collectors.toList());
+
+            if (!permissionIds.isEmpty()) {
+                List<SysMenuPermission> permissions = sysMenuPermissionMapper.selectBatchIds(permissionIds);
+                for (SysMenuPermission permission : permissions) {
+                    if (permission.getPermissionStr() != null && !permission.getPermissionStr().isEmpty()) {
+                        authorities.add(new SimpleGrantedAuthority(permission.getPermissionStr()));
+                    }
+                }
+            }
+        }
+
+        return new User(sysUser.getUsername(), sysUser.getPassword(), sysUser.getEnabled(), true, true, true, authorities);
+    }
+}

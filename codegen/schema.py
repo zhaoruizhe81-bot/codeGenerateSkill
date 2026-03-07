@@ -49,6 +49,36 @@ SCHEMA_V1: Dict[str, Any] = {
                 "driverClassName": {"type": "string", "minLength": 1},
             },
         },
+        "security": {
+            "type": "object",
+            "additionalProperties": False,
+            "properties": {
+                "enabled": {"type": "boolean", "default": False},
+                "type": {"type": "string", "enum": ["jwt"], "default": "jwt"},
+                "jwt": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "properties": {
+                        "secret": {"type": "string", "minLength": 16},
+                        "expiration": {"type": "integer", "minimum": 1},
+                        "header": {"type": "string", "minLength": 1},
+                        "prefix": {"type": "string"}
+                    }
+                },
+                "rbac": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "properties": {
+                        "strategy": {"type": "string"},
+                        "superAdminRole": {"type": "string", "minLength": 1},
+                        "defaultRoles": {
+                            "type": "array",
+                            "items": {"type": "string", "minLength": 1}
+                        }
+                    }
+                }
+            }
+        },
         "backend": {
             "type": "object",
             "additionalProperties": False,
@@ -90,6 +120,27 @@ SCHEMA_V1: Dict[str, Any] = {
                 "properties": {
                     "name": {"type": "string", "minLength": 1},
                     "comment": {"type": "string"},
+                    "auth": {
+                        "type": "object",
+                        "additionalProperties": False,
+                        "properties": {
+                            "enabled": {"type": "boolean", "default": True},
+                            "roles": {
+                                "type": "array",
+                                "items": {"type": "string", "minLength": 1}
+                            },
+                            "permissions": {
+                                "type": "object",
+                                "additionalProperties": False,
+                                "properties": {
+                                    "query": {"type": "string"},
+                                    "create": {"type": "string"},
+                                    "update": {"type": "string"},
+                                    "delete": {"type": "string"}
+                                }
+                            }
+                        }
+                    },
                     "frontend": {
                         "type": "object",
                         "additionalProperties": False,
@@ -330,6 +381,17 @@ SCHEMA_V1: Dict[str, Any] = {
                 "additionalProperties": False,
                 "properties": {
                     "name": {"type": "string", "minLength": 1},
+                    "auth": {
+                        "type": "object",
+                        "additionalProperties": False,
+                        "properties": {
+                            "enabled": {"type": "boolean", "default": True},
+                            "roles": {
+                                "type": "array",
+                                "items": {"type": "string", "minLength": 1}
+                            }
+                        }
+                    },
                     "frontend": {
                         "type": "object",
                         "additionalProperties": False,

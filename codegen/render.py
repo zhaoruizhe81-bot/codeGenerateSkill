@@ -194,6 +194,23 @@ class CodeRenderer:
             "common/GlobalExceptionHandler.java.j2", **base_context
         )
 
+        if project.security.enabled:
+            files[f"{java_root}/security/WebSecurityConfig.java"] = self._render(
+                "security/WebSecurityConfig.java.j2", **base_context
+            )
+            files[f"{java_root}/security/JwtTokenUtil.java"] = self._render(
+                "security/JwtTokenUtil.java.j2", **base_context
+            )
+            files[f"{java_root}/security/JwtAuthenticationFilter.java"] = self._render(
+                "security/JwtAuthenticationFilter.java.j2", **base_context
+            )
+            files[f"{java_root}/security/UserDetailsServiceImpl.java"] = self._render(
+                "security/UserDetailsServiceImpl.java.j2", **base_context
+            )
+            files[f"{java_root}/security/AuthController.java"] = self._render(
+                "security/AuthController.java.j2", **base_context
+            )
+
         relation_groups = self._group_relations(project.relations)
 
         for table in project.tables:
@@ -546,6 +563,11 @@ class CodeRenderer:
         }
         for file_path, template_name in shared_files.items():
             files[file_path] = self._render(template_name, **frontend_context)
+
+        if project.security.enabled:
+            files[f"{frontend_root}/src/views/login/index.vue"] = self._render(
+                "frontend/src/views/login/index.vue.j2", **frontend_context
+            )
 
         for page in table_pages:
             files[f"{frontend_root}/src/api/{page['resource_name']}.js"] = self._render(

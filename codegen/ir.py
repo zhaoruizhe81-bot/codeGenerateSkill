@@ -38,6 +38,48 @@ class RelationFrontendIR:
 
 
 @dataclass(slots=True)
+class PermissionIR:
+    query: Optional[str] = None
+    create: Optional[str] = None
+    update: Optional[str] = None
+    delete: Optional[str] = None
+
+
+@dataclass(slots=True)
+class TableAuthIR:
+    enabled: bool = True
+    roles: List[str] = field(default_factory=list)
+    permissions: PermissionIR = field(default_factory=PermissionIR)
+
+    @property
+    def roles_str(self) -> str:
+        return ", ".join(f"'{role}'" for role in self.roles)
+
+
+@dataclass(slots=True)
+class JwtConfigIR:
+    secret: str = "default-secret-key-must-be-at-least-256-bits"
+    expiration: int = 86400
+    header: str = "Authorization"
+    prefix: str = "Bearer "
+
+
+@dataclass(slots=True)
+class RbacConfigIR:
+    strategy: str = "role_permission"
+    super_admin_role: str = "ROLE_ADMIN"
+    default_roles: List[str] = field(default_factory=list)
+
+
+@dataclass(slots=True)
+class SecurityIR:
+    enabled: bool = False
+    type: str = "jwt"
+    jwt: JwtConfigIR = field(default_factory=JwtConfigIR)
+    rbac: RbacConfigIR = field(default_factory=RbacConfigIR)
+
+
+@dataclass(slots=True)
 class FieldIR:
     column_name: str
     property_name: str
@@ -108,6 +150,7 @@ class TableIR:
     infer_indexes: bool = True
     infer_foreign_keys: bool = True
     frontend: TableFrontendIR = field(default_factory=TableFrontendIR)
+    auth: Optional[TableAuthIR] = None
 
     @property
     def mapper_name(self) -> str:
@@ -179,6 +222,7 @@ class RelationIR:
     sortable_fields: List[SortableFieldIR] = field(default_factory=list)
     on_clauses: List[RelationOnIR] = field(default_factory=list)
     frontend: RelationFrontendIR = field(default_factory=RelationFrontendIR)
+    auth: Optional[TableAuthIR] = None
 
 
 @dataclass(slots=True)
@@ -211,6 +255,7 @@ class ProjectIR:
     date_time_format: str
     enable_swagger: bool
     application_name: str
+    security: SecurityIR = field(default_factory=SecurityIR)
     backend: BackendIR = field(default_factory=BackendIR)
     frontend: FrontendIR = field(default_factory=FrontendIR)
     tables: List[TableIR] = field(default_factory=list)
