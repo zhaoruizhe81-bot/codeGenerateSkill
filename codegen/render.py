@@ -148,8 +148,9 @@ class CodeRenderer:
 
     def render_project(self, project: ProjectIR) -> Dict[str, str]:
         files: Dict[str, str] = {}
-        java_root = f"src/main/java/{project.base_package_path}"
-        resource_root = "src/main/resources"
+        backend_root = project.backend.output_dir.strip("/") or "backend"
+        java_root = f"{backend_root}/src/main/java/{project.base_package_path}"
+        resource_root = f"{backend_root}/src/main/resources"
 
         base_context = {
             "project": project,
@@ -160,7 +161,7 @@ class CodeRenderer:
             "auto_fill_imports": self._auto_fill_imports(project),
         }
 
-        files["pom.xml"] = self._render("pom.xml.j2", **base_context)
+        files[f"{backend_root}/pom.xml"] = self._render("pom.xml.j2", **base_context)
         files[f"{resource_root}/application.yml"] = self._render(
             "resources/application.yml.j2", **base_context
         )

@@ -193,6 +193,11 @@ class FrontendIR:
 
 
 @dataclass(slots=True)
+class BackendIR:
+    output_dir: str = "backend"
+
+
+@dataclass(slots=True)
 class ProjectIR:
     group_id: str
     artifact_id: str
@@ -206,6 +211,7 @@ class ProjectIR:
     date_time_format: str
     enable_swagger: bool
     application_name: str
+    backend: BackendIR = field(default_factory=BackendIR)
     frontend: FrontendIR = field(default_factory=FrontendIR)
     tables: List[TableIR] = field(default_factory=list)
     relations: List[RelationIR] = field(default_factory=list)

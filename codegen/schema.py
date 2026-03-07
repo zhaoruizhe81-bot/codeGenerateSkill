@@ -49,6 +49,13 @@ SCHEMA_V1: Dict[str, Any] = {
                 "driverClassName": {"type": "string", "minLength": 1},
             },
         },
+        "backend": {
+            "type": "object",
+            "additionalProperties": False,
+            "properties": {
+                "outputDir": {"type": "string", "minLength": 1},
+            },
+        },
         "frontend": {
             "type": "object",
             "additionalProperties": False,

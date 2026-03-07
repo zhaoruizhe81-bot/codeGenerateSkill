@@ -24,7 +24,7 @@ class RendererTest(unittest.TestCase):
         project = parse_config(self.sample_payload)
         files = CodeRenderer().render_project(project)
 
-        application_yml = files["src/main/resources/application.yml"]
+        application_yml = files["backend/src/main/resources/application.yml"]
         self.assertIn(
             'url: "${DB_URL:jdbc:mysql://127.0.0.1:3306/demo?useSSL=false&serverTimezone=UTC&characterEncoding=UTF-8}"',
             application_yml,
@@ -37,10 +37,10 @@ class RendererTest(unittest.TestCase):
         files = CodeRenderer().render_project(project)
 
         create_dto = files[
-            "src/main/java/com/example/school/dto/StudentCreateRequest.java"
+            "backend/src/main/java/com/example/school/dto/StudentCreateRequest.java"
         ]
         update_dto = files[
-            "src/main/java/com/example/school/dto/StudentUpdateRequest.java"
+            "backend/src/main/java/com/example/school/dto/StudentUpdateRequest.java"
         ]
 
         self.assertIn("import javax.validation.constraints.NotBlank;", create_dto)
@@ -63,10 +63,10 @@ class RendererTest(unittest.TestCase):
         files = CodeRenderer().render_project(project)
 
         query_dto = files[
-            "src/main/java/com/example/school/dto/StudentQueryRequest.java"
+            "backend/src/main/java/com/example/school/dto/StudentQueryRequest.java"
         ]
         relation_query_dto = files[
-            "src/main/java/com/example/school/dto/PageStudentWithClassQuery.java"
+            "backend/src/main/java/com/example/school/dto/PageStudentWithClassQuery.java"
         ]
 
         self.assertIn("import javax.validation.constraints.Max;", query_dto)
@@ -86,7 +86,7 @@ class RendererTest(unittest.TestCase):
         project = parse_config(self.student_class_payload)
         files = CodeRenderer().render_project(project)
 
-        init_sql = files["src/main/resources/init.sql"]
+        init_sql = files["backend/src/main/resources/init.sql"]
         self.assertIn("CREATE DATABASE IF NOT EXISTS `student_class_demo`", init_sql)
         self.assertIn("USE `student_class_demo`", init_sql)
         self.assertIn("KEY `idx_students_student_name` (`student_name`)", init_sql)
@@ -103,7 +103,7 @@ class RendererTest(unittest.TestCase):
         files = CodeRenderer().render_project(project)
 
         handler = files[
-            "src/main/java/com/example/school/config/MybatisMetaObjectHandler.java"
+            "backend/src/main/java/com/example/school/config/MybatisMetaObjectHandler.java"
         ]
 
         self.assertIn("implements MetaObjectHandler", handler)
@@ -150,11 +150,11 @@ class RendererTest(unittest.TestCase):
         files = CodeRenderer().render_project(project)
 
         service_impl = files[
-            "src/main/java/com/example/demo/service/impl/OrderServiceImpl.java"
+            "backend/src/main/java/com/example/demo/service/impl/OrderServiceImpl.java"
         ]
-        mapper_xml = files["src/main/resources/mapper/OrderMapper.xml"]
+        mapper_xml = files["backend/src/main/resources/mapper/OrderMapper.xml"]
         relation_query = files[
-            "src/main/java/com/example/demo/dto/PageOrderWithUserQuery.java"
+            "backend/src/main/java/com/example/demo/dto/PageOrderWithUserQuery.java"
         ]
 
         self.assertIn("wrapper.ge(Order::getAmount, query.getAmount())", service_impl)
@@ -173,7 +173,7 @@ class RendererTest(unittest.TestCase):
         files = CodeRenderer().render_project(project)
 
         exception_handler = files[
-            "src/main/java/com/example/demo/exception/GlobalExceptionHandler.java"
+            "backend/src/main/java/com/example/demo/exception/GlobalExceptionHandler.java"
         ]
 
         self.assertIn("LoggerFactory", exception_handler)

@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any, Dict, List
 
 from .ir import (
+    BackendIR,
     FieldIR,
     FieldFrontendIR,
     FrontendIR,
@@ -60,6 +61,7 @@ def parse_config(payload: Dict[str, Any]) -> ProjectIR:
 
     project_cfg = payload["project"]
     datasource_cfg = payload["datasource"]
+    backend_cfg = payload.get("backend", {})
     frontend_cfg = payload.get("frontend", {})
     global_cfg = payload["global"]
 
@@ -788,6 +790,9 @@ def parse_config(payload: Dict[str, Any]) -> ProjectIR:
         date_time_format=global_cfg.get("dateTimeFormat", "yyyy-MM-dd HH:mm:ss"),
         enable_swagger=bool(global_cfg.get("enableSwagger", False)),
         application_name=project_cfg["name"],
+        backend=BackendIR(
+            output_dir=backend_cfg.get("outputDir", "backend"),
+        ),
         frontend=FrontendIR(
             enabled=bool(frontend_cfg.get("enabled", False)),
             framework=frontend_cfg.get("framework", "vue2"),
