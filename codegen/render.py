@@ -212,6 +212,7 @@ class CodeRenderer:
             )
 
         relation_groups = self._group_relations(project.relations)
+        table_map = {table.name: table for table in project.tables}
 
         for table in project.tables:
             table_relations = relation_groups.get(table.name, [])
@@ -244,7 +245,7 @@ class CodeRenderer:
                     for relation in table_relations
                 ],
                 "mapper_relation_context": [
-                    self._relation_mapper_context(relation)
+                    self._relation_mapper_context(relation, table_map)
                     for relation in table_relations
                 ],
             }
@@ -1434,7 +1435,7 @@ class CodeRenderer:
             grouped[relation.left_table].append(relation)
         return grouped
 
-    def _relation_mapper_context(self, relation: RelationIR) -> Dict[str, object]:
+    def _relation_mapper_context(self, relation: RelationIR, table_map: Dict[str, TableIR]) -> Dict[str, object]:
         select_sql: List[str] = []
         for item in relation.select_items:
             alias = "l" if item.side == "left" else "r"
@@ -1446,6 +1447,27 @@ class CodeRenderer:
         ]
 
         where_items = []
+        
+        left_table = table_map.get(relation.left_table)
+        if left_table:
+            for field in left_table.fields:
+                if field.logic_delete:
+                    where_items.append({
+                        "test": None,
+                        "condition": f"l.{field.column_name} = 0"
+                    })
+                    break
+                    
+        right_table = table_map.get(relation.right_table)
+        if right_table:
+            for field in right_table.fields:
+                if field.logic_delete:
+                    where_items.append({
+                        "test": None,
+                        "condition": f"r.{field.column_name} = 0"
+                    })
+                    break
+
         for item in relation.filters:
             alias = "l" if item.side == "left" else "r"
             condition = self._relation_condition(

@@ -11,9 +11,12 @@
             AND{% endif %}
 {% endfor %}{% if relation.where_items %}
         WHERE 1 = 1
-{% for where_item in relation.where_items %}        <if test="{{ where_item.test }}">
+{% for where_item in relation.where_items %}
+{% if where_item.test %}        <if test="{{ where_item.test }}">
             AND {{ where_item.condition }}
         </if>
+{% else %}        AND {{ where_item.condition }}
+{% endif %}
 {% endfor %}{% endif %}{% if relation.has_sorting %}
         <choose>
 {% for sort_item in relation.sort_items %}            <when test="query.sortBy == '{{ sort_item.request_name }}'">
