@@ -791,6 +791,7 @@ def parse_config(payload: Dict[str, Any]) -> ProjectIR:
         frontend=FrontendIR(
             enabled=bool(frontend_cfg.get("enabled", False)),
             framework=frontend_cfg.get("framework", "vue2"),
+            locale=frontend_cfg.get("locale", "zh-CN"),
             output_dir=frontend_cfg.get("outputDir", "frontend"),
             app_title=frontend_cfg.get("appTitle") or project_cfg["name"],
             backend_url=frontend_cfg.get("backendUrl", "http://127.0.0.1:8080"),

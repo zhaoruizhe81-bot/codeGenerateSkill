@@ -9,9 +9,9 @@
       <div class="toolbar-row">
         <div>
           <h3>{{ page.title }}</h3>
-          <p>Search, sort, create, edit, and inspect generated records.</p>
+          <p>{{ messages.table_toolbar_description }}</p>
         </div>
-        <el-button type="primary" icon="el-icon-plus" @click="openCreate">New</el-button>
+        <el-button type="primary" icon="el-icon-plus" @click="openCreate">{{ messages.button_new }}</el-button>
       </div>
 
       <el-form :inline="true" :model="queryForm" class="query-form">
@@ -37,24 +37,24 @@
             placeholder="{{ field.placeholder }}"
           />
 {% elif field.kind == "boolean" %}          <el-select v-model="queryForm.{{ field.property_name }}" clearable placeholder="{{ field.placeholder }}">
-            <el-option :value="true" label="Yes" />
-            <el-option :value="false" label="No" />
+            <el-option :value="true" label="{{ messages.boolean_yes }}" />
+            <el-option :value="false" label="{{ messages.boolean_no }}" />
           </el-select>
 {% endif %}        </el-form-item>
-{% endfor %}{% if page.has_sorting %}        <el-form-item label="Sort By">
-          <el-select v-model="queryForm.sortBy" clearable placeholder="Select sort field">
+{% endfor %}{% if page.has_sorting %}        <el-form-item label="{{ messages.sort_by }}">
+          <el-select v-model="queryForm.sortBy" clearable placeholder="{{ messages.sort_by_placeholder }}">
 {% for item in page.sort_options %}            <el-option value="{{ item.request_name }}" label="{{ item.label }}" />
 {% endfor %}          </el-select>
         </el-form-item>
-        <el-form-item label="Direction">
-          <el-select v-model="queryForm.sortDir" placeholder="Select direction">
-            <el-option value="ASC" label="Ascending" />
-            <el-option value="DESC" label="Descending" />
+        <el-form-item label="{{ messages.sort_direction }}">
+          <el-select v-model="queryForm.sortDir" placeholder="{{ messages.sort_direction_placeholder }}">
+            <el-option value="ASC" label="{{ messages.sort_ascending }}" />
+            <el-option value="DESC" label="{{ messages.sort_descending }}" />
           </el-select>
         </el-form-item>
 {% endif %}        <el-form-item>
-          <el-button type="primary" icon="el-icon-search" @click="handleSearch">Search</el-button>
-          <el-button icon="el-icon-refresh-left" @click="handleReset">Reset</el-button>
+          <el-button type="primary" icon="el-icon-search" @click="handleSearch">{{ messages.button_search }}</el-button>
+          <el-button icon="el-icon-refresh-left" @click="handleReset">{{ messages.button_reset }}</el-button>
         </el-form-item>
       </el-form>
 
@@ -77,11 +77,11 @@
 {% else %}            <span v-text="formatValue(scope.row.{{ column.property_name }})"></span>
 {% endif %}          </template>
         </el-table-column>
-{% endfor %}        <el-table-column label="Actions" width="220" fixed="right">
+{% endfor %}        <el-table-column label="{{ messages.table_actions }}" width="220" fixed="right">
           <template slot-scope="scope">
-            <el-button type="text" @click="openDetail(scope.row)">Detail</el-button>
-            <el-button type="text" @click="openEdit(scope.row)">Edit</el-button>
-            <el-button type="text" style="color: #ef4444" @click="handleDelete(scope.row)">Delete</el-button>
+            <el-button type="text" @click="openDetail(scope.row)">{{ messages.button_detail }}</el-button>
+            <el-button type="text" @click="openEdit(scope.row)">{{ messages.button_edit }}</el-button>
+            <el-button type="text" style="color: #ef4444" @click="handleDelete(scope.row)">{{ messages.button_delete }}</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -114,12 +114,12 @@
 {% endif %}        </el-form-item>
 {% endfor %}      </el-form>
       <span slot="footer">
-        <el-button @click="dialogVisible = false">Cancel</el-button>
-        <el-button type="primary" @click="submitForm">Save</el-button>
+        <el-button @click="dialogVisible = false">{{ messages.button_cancel }}</el-button>
+        <el-button type="primary" @click="submitForm">{{ messages.button_save }}</el-button>
       </span>
     </el-dialog>
 
-    <el-drawer :visible.sync="detailVisible" title="Record Detail" size="40%">
+    <el-drawer :visible.sync="detailVisible" title="{{ messages.dialog_detail_title }}" size="40%">
       <el-descriptions :column="1" border>
 {% for field in page.detail_fields %}        <el-descriptions-item label="{{ field.label }}">
 {% if field.formatter == "datetime" %}          <span class="detail-value" v-text="formatDateTime(detailData.{{ field.property_name }})"></span>
@@ -168,7 +168,7 @@ export default {
       queryForm: createDefaultQuery(),
       dialogVisible: false,
       dialogMode: "create",
-      dialogTitle: "New {{ page.title }}",
+      dialogTitle: "{{ messages.dialog_new_title|replace("{title}", page.title) }}",
       currentId: null,
       formData: createEmptyForm(),
       detailVisible: false,
@@ -225,7 +225,7 @@ export default {
 {% endif %}    },
     openCreate() {
       this.dialogMode = "create"
-      this.dialogTitle = "New {{ page.title }}"
+      this.dialogTitle = "{{ messages.dialog_new_title|replace("{title}", page.title) }}"
       this.currentId = null
       this.formData = createEmptyForm()
       this.dialogVisible = true
@@ -233,7 +233,7 @@ export default {
     async openEdit(row) {
       const data = await {{ page.api_function_names['fetch_one'] }}(row.{{ page.primary_key_property }})
       this.dialogMode = "edit"
-      this.dialogTitle = "Edit {{ page.title }}"
+      this.dialogTitle = "{{ messages.dialog_edit_title|replace("{title}", page.title) }}"
       this.currentId = row.{{ page.primary_key_property }}
       this.formData = this.normalizeFormData(data)
       this.dialogVisible = true
@@ -250,20 +250,20 @@ export default {
     async submitForm() {
       if (this.dialogMode === "create") {
         await {{ page.api_function_names['create'] }}(this.formData)
-        this.$message.success("Created successfully")
+        this.$message.success("{{ messages.message_created }}")
       } else {
         await {{ page.api_function_names['update'] }}(this.currentId, this.formData)
-        this.$message.success("Updated successfully")
+        this.$message.success("{{ messages.message_updated }}")
       }
       this.dialogVisible = false
       this.loadData()
     },
     async handleDelete(row) {
-      await this.$confirm("Delete the selected record?", "Warning", {
+      await this.$confirm("{{ messages.confirm_delete }}", "{{ messages.confirm_warning_title }}", {
         type: "warning"
       })
       await {{ page.api_function_names['delete'] }}(row.{{ page.primary_key_property }})
-      this.$message.success("Deleted successfully")
+      this.$message.success("{{ messages.message_deleted }}")
       this.loadData()
     }
   }

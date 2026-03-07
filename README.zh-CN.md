@@ -34,6 +34,7 @@
 - `seedData` 演示数据写入 `init.sql`
 - 可生成独立 Vue2 管理后台，包含路由、布局、请求封装、单表 CRUD 页面、联表查询页面
 - 支持前端细粒度配置：菜单标题/图标、字段显隐、组件类型
+- 内置前端文案字典与 Element UI 语言切换，默认生成 `zh-CN` 中文界面，也可切换 `en-US`
 
 ## 安装
 
@@ -75,6 +76,7 @@ codegen -c examples/sample.json -o /tmp/codegen-out
 - `examples/student_management.json`：最基础的学生单表 CRUD
 - `examples/student_class_management.json`：学生 + 班级联表示例，包含排序、索引、外键和演示数据
 - `examples/fullstack_sample.json`：后端 + 独立 Vue2 前端的完整示例
+- `examples/student_class_management_fullstack.json`：英文字段名 + 中文前端列名的学生班级前后端一体示例
 
 ## 最小单表示例
 
@@ -377,12 +379,15 @@ spring:
 "frontend": {
   "enabled": true,
   "framework": "vue2",
+  "locale": "zh-CN",
   "outputDir": "frontend",
   "appTitle": "Demo Admin",
   "backendUrl": "http://127.0.0.1:8080",
   "devPort": 8081
 }
 ```
+
+`locale` 默认就是 `zh-CN`，所以不写也会生成中文按钮、中文提示语和中文 Element UI 组件文案；如果你想切回英文界面，再显式写成 `en-US` 即可。
 
 生成出来的前端通常包含：
 
@@ -422,6 +427,10 @@ spring:
   ]
 }
 ```
+
+如果数据库字段名必须保持英文，比如 `student_name`、`class_id`，也没关系。前端显示名不取决于字段名，而是优先使用 `frontend.label`，其次使用字段 `comment`。所以你可以继续保留英文列名，同时通过中文 `comment` 或 `frontend.label` 生成中文表头、表单标签、查询条件、联表结果列名和排序字段文案。
+
+同一个字段级 `frontend.label` 也会同步影响联表查询页面的结果列标题与排序字段标题，这样单表页面和联表页面的中文命名可以保持一致。
 
 ## 生成后的运行行为
 

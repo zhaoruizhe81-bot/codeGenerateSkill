@@ -177,6 +177,10 @@ class RendererTest(unittest.TestCase):
         ]
 
         self.assertIn("LoggerFactory", exception_handler)
+        self.assertIn("DataIntegrityViolationException", exception_handler)
+        self.assertIn(
+            '"operation failed due to related data constraints"', exception_handler
+        )
         self.assertIn("Result.failure(ErrorCode.INTERNAL_ERROR)", exception_handler)
         self.assertNotIn(
             "ex.getMessage()", exception_handler.split("handleException")[1]
@@ -187,6 +191,7 @@ class RendererTest(unittest.TestCase):
         payload["frontend"] = {
             "enabled": True,
             "framework": "vue2",
+            "locale": "en-US",
             "outputDir": "frontend",
             "appTitle": "Demo Admin",
             "backendUrl": "http://127.0.0.1:8080",
@@ -229,6 +234,8 @@ class RendererTest(unittest.TestCase):
         orders_api = files["frontend/src/api/orders.js"]
         users_view = files["frontend/src/views/users/index.vue"]
         relation_view = files["frontend/src/views/relations/order-user/index.vue"]
+        main_js = files["frontend/src/main.js"]
+        public_html = files["frontend/public/index.html"]
 
         self.assertIn('"vue": "^2.7.16"', package_json)
         self.assertIn('"element-ui": "^2.15.14"', package_json)
@@ -237,8 +244,10 @@ class RendererTest(unittest.TestCase):
         self.assertIn("User Center", layout_vue)
         self.assertIn("el-icon-user-solid", layout_vue)
         self.assertIn("Order User Report", layout_vue)
+        self.assertNotIn("element-ui/lib/locale/lang/zh-CN", main_js)
+        self.assertIn('<html lang="en-US">', public_html)
         self.assertIn("response.data.code !== 0", request_js)
-        self.assertIn("/api/users", users_api)
+        self.assertIn('const baseUrl = "/users"', users_api)
         self.assertIn("fetchUsersPage", users_api)
         self.assertIn("createUser", users_api)
         self.assertIn("fetchPageOrderWithUser", orders_api)
@@ -252,6 +261,96 @@ class RendererTest(unittest.TestCase):
         self.assertIn('label="Disabled"', users_view)
         self.assertIn("textarea", users_view)
         self.assertIn("fetchPageOrderWithUser", relation_view)
+
+    def test_render_vue2_frontend_defaults_to_zh_cn_and_uses_chinese_labels(
+        self,
+    ) -> None:
+        payload = json.loads(json.dumps(self.sample_payload))
+        payload["frontend"] = {
+            "enabled": True,
+            "framework": "vue2",
+            "outputDir": "frontend",
+            "appTitle": "学生管理后台",
+            "backendUrl": "http://127.0.0.1:8080",
+            "devPort": 8081,
+        }
+        payload["tables"][0]["frontend"] = {
+            "menuTitle": "用户管理",
+            "menuIcon": "el-icon-user-solid",
+        }
+        payload["tables"][0]["fields"][1]["comment"] = "login account"
+        payload["tables"][0]["fields"][1]["frontend"] = {
+            "label": "登录名",
+            "tableVisible": True,
+            "queryVisible": True,
+            "formVisible": True,
+            "detailVisible": True,
+        }
+        payload["tables"][0]["fields"][2]["frontend"] = {
+            "label": "状态",
+            "component": "select",
+            "queryComponent": "select",
+            "options": [
+                {"label": "禁用", "value": 0},
+                {"label": "启用", "value": 1},
+            ],
+        }
+        payload["tables"][1]["fields"][1]["comment"] = "order code"
+        payload["tables"][1]["fields"][1]["frontend"] = {"label": "订单编号"}
+        payload["relations"][0]["frontend"] = {
+            "menuTitle": "订单用户报表",
+            "menuIcon": "el-icon-data-analysis",
+        }
+
+        project = parse_config(payload)
+        files = CodeRenderer().render_project(project)
+
+        router_js = files["frontend/src/router/index.js"]
+        layout_vue = files["frontend/src/layout/Layout.vue"]
+        dashboard_vue = files["frontend/src/views/dashboard/index.vue"]
+        users_view = files["frontend/src/views/users/index.vue"]
+        relation_view = files["frontend/src/views/relations/order-user/index.vue"]
+        main_js = files["frontend/src/main.js"]
+        public_html = files["frontend/public/index.html"]
+        format_js = files["frontend/src/utils/format.js"]
+        request_js = files["frontend/src/utils/request.js"]
+
+        self.assertEqual(project.frontend.locale, "zh-CN")
+        self.assertIn('import locale from "element-ui/lib/locale/lang/zh-CN"', main_js)
+        self.assertIn('Vue.use(ElementUI, { size: "small", locale })', main_js)
+        self.assertIn('<html lang="zh-CN">', public_html)
+        self.assertIn("此页面需要启用 JavaScript 才能运行。", public_html)
+        self.assertIn('meta: { title: "仪表盘" }', router_js)
+        self.assertIn("仪表盘", layout_vue)
+        self.assertIn("数据管理", layout_vue)
+        self.assertIn("关联视图", layout_vue)
+        self.assertIn("Vue2 管理工作台", layout_vue)
+        self.assertIn("快速导航", dashboard_vue)
+        self.assertIn("打开已生成的数据模块与关联查询页面。", dashboard_vue)
+        self.assertIn("查询", users_view)
+        self.assertIn("重置", users_view)
+        self.assertIn("新增", users_view)
+        self.assertIn("操作", users_view)
+        self.assertIn("详情", users_view)
+        self.assertIn("编辑", users_view)
+        self.assertIn("删除", users_view)
+        self.assertIn("记录详情", users_view)
+        self.assertIn("请输入登录名", users_view)
+        self.assertIn("请选择排序字段", users_view)
+        self.assertIn("升序", users_view)
+        self.assertIn("降序", users_view)
+        self.assertIn("创建成功", users_view)
+        self.assertIn("删除成功", users_view)
+        self.assertIn('label="启用"', users_view)
+        self.assertIn('label="禁用"', users_view)
+        self.assertIn("登录名", users_view)
+        self.assertIn("订单编号", relation_view)
+        self.assertIn("登录名", relation_view)
+        self.assertIn("查询", relation_view)
+        self.assertIn('placeholder="请输入登录名"', users_view)
+        self.assertNotIn("请输入请输入", users_view)
+        self.assertIn('return value ? "是" : "否"', format_js)
+        self.assertIn('Message.error(payload.message || "请求失败")', request_js)
 
 
 if __name__ == "__main__":

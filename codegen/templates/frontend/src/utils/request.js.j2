@@ -10,18 +10,18 @@ service.interceptors.response.use(
   (response) => {
     const payload = response.data
     if (!payload) {
-      Message.error("Empty response received")
-      return Promise.reject(new Error("Empty response received"))
+      Message.error("{{ messages.request_empty_response }}")
+      return Promise.reject(new Error("{{ messages.request_empty_response }}"))
     }
     if (response.data.code !== 0) {
-      Message.error(payload.message || "Request failed")
-      return Promise.reject(new Error(payload.message || "Request failed"))
+      Message.error(payload.message || "{{ messages.request_failed }}")
+      return Promise.reject(new Error(payload.message || "{{ messages.request_failed }}"))
     }
     return payload.data
   },
   (error) => {
     const responseMessage = error.response && error.response.data && error.response.data.message
-    Message.error(responseMessage || error.message || "Network request failed")
+    Message.error(responseMessage || error.message || "{{ messages.request_network_failed }}")
     return Promise.reject(error)
   }
 )

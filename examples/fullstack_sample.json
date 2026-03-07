@@ -17,6 +17,7 @@
   "frontend": {
     "enabled": true,
     "framework": "vue2",
+    "locale": "zh-CN",
     "outputDir": "frontend",
     "appTitle": "Demo Admin",
     "backendUrl": "http://127.0.0.1:8080",

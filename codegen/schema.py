@@ -55,6 +55,7 @@ SCHEMA_V1: Dict[str, Any] = {
             "properties": {
                 "enabled": {"type": "boolean", "default": False},
                 "framework": {"type": "string", "enum": ["vue2"]},
+                "locale": {"type": "string", "enum": ["zh-CN", "en-US"]},
                 "outputDir": {"type": "string", "minLength": 1},
                 "appTitle": {"type": "string"},
                 "backendUrl": {"type": "string", "minLength": 1},

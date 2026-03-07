@@ -91,6 +91,7 @@ class ParserTest(unittest.TestCase):
         payload["frontend"] = {
             "enabled": True,
             "framework": "vue2",
+            "locale": "en-US",
             "outputDir": "frontend",
             "appTitle": "Demo Admin",
             "backendUrl": "http://127.0.0.1:8080",
@@ -122,6 +123,7 @@ class ParserTest(unittest.TestCase):
 
         self.assertTrue(project.frontend.enabled)
         self.assertEqual(project.frontend.framework, "vue2")
+        self.assertEqual(project.frontend.locale, "en-US")
         self.assertEqual(project.frontend.output_dir, "frontend")
         self.assertEqual(project.frontend.app_title, "Demo Admin")
         self.assertEqual(project.frontend.backend_url, "http://127.0.0.1:8080")
@@ -132,6 +134,30 @@ class ParserTest(unittest.TestCase):
         self.assertEqual(project.tables[0].fields[1].frontend.label, "Login Name")
         self.assertEqual(project.tables[0].fields[1].frontend.component, "textarea")
         self.assertEqual(project.relations[0].frontend.menu_title, "Order User Report")
+
+    def test_parse_frontend_defaults_to_zh_cn_locale(self) -> None:
+        payload = json.loads(json.dumps(self.sample_payload))
+        payload["frontend"] = {
+            "enabled": True,
+            "framework": "vue2",
+            "outputDir": "frontend",
+        }
+
+        project = parse_config(payload)
+
+        self.assertEqual(project.frontend.locale, "zh-CN")
+
+    def test_invalid_frontend_locale_should_fail(self) -> None:
+        payload = json.loads(json.dumps(self.sample_payload))
+        payload["frontend"] = {
+            "enabled": True,
+            "framework": "vue2",
+            "locale": "ja-JP",
+            "outputDir": "frontend",
+        }
+
+        with self.assertRaises(ConfigError):
+            parse_config(payload)
 
 
 if __name__ == "__main__":

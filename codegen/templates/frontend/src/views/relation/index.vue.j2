@@ -9,7 +9,7 @@
       <div class="toolbar-row">
         <div>
           <h3>{{ page.title }}</h3>
-          <p>Read-only relation view backed by generated join SQL.</p>
+          <p>{{ messages.relation_toolbar_description }}</p>
         </div>
       </div>
 
@@ -22,24 +22,24 @@
 {% elif field.kind == "number" %}          <el-input-number v-model="queryForm.{{ field.property_name }}" :step="{{ field.step }}" :controls="false" />
 {% elif field.kind in ["date", "datetime"] %}          <el-date-picker v-model="queryForm.{{ field.property_name }}" type="{{ field.picker_type }}" value-format="{{ field.value_format }}" placeholder="{{ field.placeholder }}" />
 {% elif field.kind == "boolean" %}          <el-select v-model="queryForm.{{ field.property_name }}" clearable placeholder="{{ field.placeholder }}">
-            <el-option :value="true" label="Yes" />
-            <el-option :value="false" label="No" />
+            <el-option :value="true" label="{{ messages.boolean_yes }}" />
+            <el-option :value="false" label="{{ messages.boolean_no }}" />
           </el-select>
 {% endif %}        </el-form-item>
-{% endfor %}{% if page.has_sorting %}        <el-form-item label="Sort By">
-          <el-select v-model="queryForm.sortBy" clearable placeholder="Select sort field">
+{% endfor %}{% if page.has_sorting %}        <el-form-item label="{{ messages.sort_by }}">
+          <el-select v-model="queryForm.sortBy" clearable placeholder="{{ messages.sort_by_placeholder }}">
 {% for item in page.sort_options %}            <el-option value="{{ item.request_name }}" label="{{ item.label }}" />
 {% endfor %}          </el-select>
         </el-form-item>
-        <el-form-item label="Direction">
-          <el-select v-model="queryForm.sortDir" placeholder="Select direction">
-            <el-option value="ASC" label="Ascending" />
-            <el-option value="DESC" label="Descending" />
+        <el-form-item label="{{ messages.sort_direction }}">
+          <el-select v-model="queryForm.sortDir" placeholder="{{ messages.sort_direction_placeholder }}">
+            <el-option value="ASC" label="{{ messages.sort_ascending }}" />
+            <el-option value="DESC" label="{{ messages.sort_descending }}" />
           </el-select>
         </el-form-item>
 {% endif %}        <el-form-item>
-          <el-button type="primary" icon="el-icon-search" @click="handleSearch">Search</el-button>
-          <el-button icon="el-icon-refresh-left" @click="handleReset">Reset</el-button>
+          <el-button type="primary" icon="el-icon-search" @click="handleSearch">{{ messages.button_search }}</el-button>
+          <el-button icon="el-icon-refresh-left" @click="handleReset">{{ messages.button_reset }}</el-button>
         </el-form-item>
       </el-form>
 

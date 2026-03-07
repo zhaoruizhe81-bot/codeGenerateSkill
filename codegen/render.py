@@ -31,6 +31,111 @@ ANNOTATION_IMPORTS = {
     "Size": "javax.validation.constraints.Size",
 }
 
+FRONTEND_MESSAGES = {
+    "zh-CN": {
+        "html_lang": "zh-CN",
+        "dashboard_title": "仪表盘",
+        "layout_brand_subtitle": "Vue2 管理工作台",
+        "layout_caption": "已为 {artifact_id} 生成经典管理后台界面",
+        "menu_group_data": "数据管理",
+        "menu_group_relations": "关联视图",
+        "dashboard_hero_subtitle": "已连接 Spring Boot CRUD 后端的 Vue2 管理工作台。",
+        "dashboard_card_data_title": "数据模块",
+        "dashboard_card_data_description": "已生成的 CRUD 页面",
+        "dashboard_card_relations_title": "关联视图",
+        "dashboard_card_relations_description": "已生成的联表查询页面",
+        "dashboard_quick_nav_title": "快速导航",
+        "dashboard_quick_nav_description": "打开已生成的数据模块与关联查询页面。",
+        "table_subtitle": "管理{table_title}的 CRUD 页面与数据记录。",
+        "table_toolbar_description": "支持查询、排序、新增、编辑与查看生成的数据记录。",
+        "relation_subtitle": "查看{left_title}与{right_title}的联表查询结果。",
+        "relation_toolbar_description": "只读联表视图，底层 SQL 由生成器自动生成。",
+        "button_new": "新增",
+        "button_search": "查询",
+        "button_reset": "重置",
+        "button_detail": "详情",
+        "button_edit": "编辑",
+        "button_delete": "删除",
+        "button_cancel": "取消",
+        "button_save": "保存",
+        "table_actions": "操作",
+        "sort_by": "排序字段",
+        "sort_by_placeholder": "请选择排序字段",
+        "sort_direction": "排序方向",
+        "sort_direction_placeholder": "请选择排序方向",
+        "sort_ascending": "升序",
+        "sort_descending": "降序",
+        "dialog_detail_title": "记录详情",
+        "dialog_new_title": "新增{title}",
+        "dialog_edit_title": "编辑{title}",
+        "message_created": "创建成功",
+        "message_updated": "更新成功",
+        "message_deleted": "删除成功",
+        "confirm_delete": "确认删除当前记录吗？",
+        "confirm_warning_title": "提示",
+        "boolean_yes": "是",
+        "boolean_no": "否",
+        "placeholder_enter": "请输入{label}",
+        "placeholder_select": "请选择{label}",
+        "request_empty_response": "服务端返回了空响应",
+        "request_failed": "请求失败",
+        "request_network_failed": "网络请求失败",
+        "no_script": "此页面需要启用 JavaScript 才能运行。",
+        "untitled": "未命名",
+    },
+    "en-US": {
+        "html_lang": "en-US",
+        "dashboard_title": "Dashboard",
+        "layout_brand_subtitle": "Vue2 Admin Workspace",
+        "layout_caption": "Generated classic management frontend for {artifact_id}",
+        "menu_group_data": "Data Management",
+        "menu_group_relations": "Relation Views",
+        "dashboard_hero_subtitle": "Generated Vue2 admin workspace connected to the Spring Boot CRUD backend.",
+        "dashboard_card_data_title": "Data Modules",
+        "dashboard_card_data_description": "Generated CRUD pages",
+        "dashboard_card_relations_title": "Relation Views",
+        "dashboard_card_relations_description": "Generated join query pages",
+        "dashboard_quick_nav_title": "Quick Navigation",
+        "dashboard_quick_nav_description": "Open generated modules and relation query pages.",
+        "table_subtitle": "Manage {table_title} records with generated CRUD views.",
+        "table_toolbar_description": "Search, sort, create, edit, and inspect generated records.",
+        "relation_subtitle": "Browse generated join results for {left_title} and {right_title}.",
+        "relation_toolbar_description": "Read-only relation view backed by generated join SQL.",
+        "button_new": "New",
+        "button_search": "Search",
+        "button_reset": "Reset",
+        "button_detail": "Detail",
+        "button_edit": "Edit",
+        "button_delete": "Delete",
+        "button_cancel": "Cancel",
+        "button_save": "Save",
+        "table_actions": "Actions",
+        "sort_by": "Sort By",
+        "sort_by_placeholder": "Select sort field",
+        "sort_direction": "Direction",
+        "sort_direction_placeholder": "Select direction",
+        "sort_ascending": "Ascending",
+        "sort_descending": "Descending",
+        "dialog_detail_title": "Record Detail",
+        "dialog_new_title": "New {title}",
+        "dialog_edit_title": "Edit {title}",
+        "message_created": "Created successfully",
+        "message_updated": "Updated successfully",
+        "message_deleted": "Deleted successfully",
+        "confirm_delete": "Delete the selected record?",
+        "confirm_warning_title": "Warning",
+        "boolean_yes": "Yes",
+        "boolean_no": "No",
+        "placeholder_enter": "Enter {label}",
+        "placeholder_select": "Select {label}",
+        "request_empty_response": "Empty response received",
+        "request_failed": "Request failed",
+        "request_network_failed": "Network request failed",
+        "no_script": "This frontend requires JavaScript to run.",
+        "untitled": "Untitled",
+    },
+}
+
 
 class CodeRenderer:
     def __init__(self) -> None:
@@ -377,6 +482,8 @@ class CodeRenderer:
 
     def _render_vue2_frontend(self, project: ProjectIR) -> Dict[str, str]:
         files: Dict[str, str] = {}
+        locale = project.frontend.locale
+        messages = self._frontend_messages(locale)
         frontend_root = project.frontend.output_dir.strip("/") or "frontend"
         relation_groups = self._group_relations(project.relations)
         table_map = {table.name: table for table in project.tables}
@@ -386,31 +493,37 @@ class CodeRenderer:
                 project,
                 table,
                 relation_groups.get(table.name, []),
+                locale,
             )
             for table in project.tables
         ]
         relation_pages = [
-            self._frontend_relation_page_context(project, relation, table_map)
+            self._frontend_relation_page_context(project, relation, table_map, locale)
             for relation in project.relations
         ]
 
         frontend_context = {
             "project": project,
             "frontend": project.frontend,
+            "messages": messages,
             "table_pages": table_pages,
             "relation_pages": relation_pages,
-            "menu_groups": self._frontend_menu_groups(table_pages, relation_pages),
+            "menu_groups": self._frontend_menu_groups(
+                locale,
+                table_pages,
+                relation_pages,
+            ),
             "dashboard_cards": [
                 {
-                    "title": "Data Modules",
+                    "title": messages["dashboard_card_data_title"],
                     "value": len(table_pages),
-                    "description": "Generated CRUD pages",
+                    "description": messages["dashboard_card_data_description"],
                     "icon": "el-icon-s-grid",
                 },
                 {
-                    "title": "Relation Views",
+                    "title": messages["dashboard_card_relations_title"],
                     "value": len(relation_pages),
-                    "description": "Generated join query pages",
+                    "description": messages["dashboard_card_relations_description"],
                     "icon": "el-icon-connection",
                 },
             ],
@@ -460,12 +573,14 @@ class CodeRenderer:
 
     def _frontend_menu_groups(
         self,
+        locale: str,
         table_pages: List[Dict[str, object]],
         relation_pages: List[Dict[str, object]],
     ) -> List[Dict[str, object]]:
+        messages = self._frontend_messages(locale)
         groups = [
             {
-                "title": "Data Management",
+                "title": messages["menu_group_data"],
                 "icon": "el-icon-s-grid",
                 "items": [
                     {
@@ -481,7 +596,7 @@ class CodeRenderer:
         if relation_pages:
             groups.append(
                 {
-                    "title": "Relation Views",
+                    "title": messages["menu_group_relations"],
                     "icon": "el-icon-connection",
                     "items": [
                         {
@@ -501,19 +616,22 @@ class CodeRenderer:
         project: ProjectIR,
         table: TableIR,
         table_relations: List[RelationIR],
+        locale: str,
     ) -> Dict[str, object]:
         field_by_property = {field.property_name: field for field in table.fields}
-        title = table.frontend.menu_title or table.comment or table.entity_name
+        title = self._frontend_table_title(table, locale)
         query_fields = [
             self._frontend_query_field(
-                field_by_property[item.property_name], item.property_name
+                field_by_property[item.property_name],
+                item.property_name,
+                locale,
             )
             for item in table.queryable_fields
             if item.property_name in field_by_property
             and field_by_property[item.property_name].frontend.query_visible
         ]
         form_fields = [
-            self._frontend_form_field(field)
+            self._frontend_form_field(field, locale)
             for field in table.fields
             if not field.is_primary
             and not field.logic_delete
@@ -521,18 +639,20 @@ class CodeRenderer:
             and field.frontend.form_visible
         ]
         table_columns = [
-            self._frontend_table_column(field, table.sortable_fields)
+            self._frontend_table_column(field, table.sortable_fields, locale)
             for field in table.fields
             if not field.logic_delete and field.frontend.table_visible
         ]
         detail_fields = [
-            self._frontend_detail_field(field)
+            self._frontend_detail_field(field, locale)
             for field in table.fields
             if not field.logic_delete and field.frontend.detail_visible
         ]
         sort_options = [
             self._frontend_sort_option(
-                sort_item, field_by_property[sort_item.property_name].comment
+                sort_item,
+                field_by_property[sort_item.property_name],
+                locale,
             )
             for sort_item in table.sortable_fields
             if sort_item.property_name in field_by_property
@@ -544,7 +664,7 @@ class CodeRenderer:
                 "api_function_name": f"fetch{relation.method_name[:1].upper()}{relation.method_name[1:]}",
                 "endpoint_name": relation.name,
                 "title": relation.frontend.menu_title
-                or self._frontend_title(relation.name, relation.dto_name),
+                or self._frontend_title(locale, relation.name, relation.dto_name),
                 "route_path": f"/relations/{relation.name}",
                 "menu_icon": relation.frontend.menu_icon,
                 "menu_visible": relation.frontend.menu_visible,
@@ -554,14 +674,18 @@ class CodeRenderer:
 
         return {
             "title": title,
-            "subtitle": f"Manage {table.name} records with generated CRUD views.",
+            "subtitle": self._frontend_text(
+                locale,
+                "table_subtitle",
+                table_title=title,
+            ),
             "resource_name": table.resource_name,
             "entity_name": table.entity_name,
             "route_path": f"/{table.resource_name}",
             "route_name": f"{table.entity_name}Index",
             "menu_icon": table.frontend.menu_icon,
             "menu_visible": table.frontend.menu_visible,
-            "api_base": f"{project.api_prefix}/{table.resource_name}",
+            "api_base": f"/{table.resource_name}",
             "api_function_names": {
                 "fetch_page": f"fetch{resource_pascal}Page",
                 "fetch_one": f"fetch{table.entity_name}",
@@ -593,6 +717,7 @@ class CodeRenderer:
         project: ProjectIR,
         relation: RelationIR,
         table_map: Dict[str, TableIR],
+        locale: str,
     ) -> Dict[str, object]:
         left_table = table_map[relation.left_table]
         right_table = table_map[relation.right_table]
@@ -606,7 +731,7 @@ class CodeRenderer:
             if not source_field.frontend.query_visible:
                 continue
             query_fields.append(
-                self._frontend_query_field(source_field, item.param_name)
+                self._frontend_query_field(source_field, item.param_name, locale)
             )
 
         columns = []
@@ -616,8 +741,7 @@ class CodeRenderer:
             columns.append(
                 {
                     "property_name": item.alias,
-                    "label": source_field.comment
-                    or self._frontend_title(item.alias, item.alias),
+                    "label": self._frontend_label(source_field, item.alias, locale),
                     "formatter": self._frontend_formatter(item.java_type),
                 }
             )
@@ -627,13 +751,23 @@ class CodeRenderer:
             source_fields = left_fields if sort_item.side == "left" else right_fields
             source_field = source_fields[sort_item.column_name]
             sort_options.append(
-                self._frontend_sort_option(sort_item, source_field.comment)
+                self._frontend_sort_option(sort_item, source_field, locale)
             )
 
+        title = relation.frontend.menu_title or self._frontend_title(
+            locale,
+            relation.name,
+            relation.dto_name,
+        )
+
         return {
-            "title": relation.frontend.menu_title
-            or self._frontend_title(relation.name, relation.dto_name),
-            "subtitle": f"Browse generated join results for {relation.left_table} and {relation.right_table}.",
+            "title": title,
+            "subtitle": self._frontend_text(
+                locale,
+                "relation_subtitle",
+                left_title=self._frontend_table_title(left_table, locale),
+                right_title=self._frontend_table_title(right_table, locale),
+            ),
             "endpoint_name": relation.name,
             "route_path": f"/relations/{relation.name}",
             "route_name": f"{snake_to_pascal(relation.name)}RelationIndex",
@@ -647,7 +781,7 @@ class CodeRenderer:
             "has_sorting": bool(sort_options),
         }
 
-    def _frontend_form_field(self, field: FieldIR) -> Dict[str, object]:
+    def _frontend_form_field(self, field: FieldIR, locale: str) -> Dict[str, object]:
         widget = self._frontend_widget(
             str(field.java_type),
             str(field.db_type),
@@ -655,11 +789,7 @@ class CodeRenderer:
             component_override=str(field.frontend.component),
             has_options=bool(field.frontend.options),
         )
-        label = (
-            str(field.frontend.label)
-            or str(field.comment)
-            or self._frontend_title(str(field.property_name), str(field.property_name))
-        )
+        label = self._frontend_label(field, str(field.property_name), locale)
         return {
             "property_name": str(field.property_name),
             "label": label,
@@ -675,13 +805,17 @@ class CodeRenderer:
                 for item in field.frontend.options
             ],
             "placeholder": self._frontend_placeholder(
+                locale,
                 widget["kind"],
                 str(field.frontend.placeholder) or label,
             ),
         }
 
     def _frontend_query_field(
-        self, field: FieldIR, prop_name: str
+        self,
+        field: FieldIR,
+        prop_name: str,
+        locale: str,
     ) -> Dict[str, object]:
         widget = self._frontend_widget(
             str(field.java_type),
@@ -691,11 +825,7 @@ class CodeRenderer:
             or str(field.frontend.component),
             has_options=bool(field.frontend.options),
         )
-        label = (
-            str(field.frontend.label)
-            or str(field.comment)
-            or self._frontend_title(prop_name, prop_name)
-        )
+        label = self._frontend_label(field, prop_name, locale)
         return {
             "property_name": prop_name,
             "label": label,
@@ -709,6 +839,7 @@ class CodeRenderer:
                 for item in field.frontend.options
             ],
             "placeholder": self._frontend_placeholder(
+                locale,
                 widget["kind"],
                 str(field.frontend.placeholder) or label,
             ),
@@ -718,39 +849,50 @@ class CodeRenderer:
         self,
         field: FieldIR,
         sortable_fields: Iterable[SortableFieldIR],
+        locale: str,
     ) -> Dict[str, object]:
         sortable_props = {item.property_name for item in sortable_fields}
         property_name = str(field.property_name)
         return {
             "property_name": property_name,
-            "label": str(field.frontend.label)
-            or str(field.comment)
-            or self._frontend_title(property_name, property_name),
+            "label": self._frontend_label(field, property_name, locale),
             "formatter": self._frontend_formatter(str(field.java_type)),
             "sortable": property_name in sortable_props,
         }
 
-    def _frontend_detail_field(self, field: FieldIR) -> Dict[str, object]:
+    def _frontend_detail_field(self, field: FieldIR, locale: str) -> Dict[str, object]:
         property_name = str(field.property_name)
         return {
             "property_name": property_name,
-            "label": str(field.frontend.label)
-            or str(field.comment)
-            or self._frontend_title(property_name, property_name),
+            "label": self._frontend_label(field, property_name, locale),
             "formatter": self._frontend_formatter(str(field.java_type)),
         }
 
     def _frontend_sort_option(
         self,
         sort_item: SortableFieldIR,
-        comment: str,
+        field: FieldIR,
+        locale: str,
     ) -> Dict[str, object]:
         return {
             "request_name": sort_item.request_name,
             "property_name": sort_item.property_name,
-            "label": comment
-            or self._frontend_title(sort_item.request_name, sort_item.request_name),
+            "label": self._frontend_label(field, sort_item.request_name, locale),
         }
+
+    def _frontend_table_title(self, table: TableIR, locale: str) -> str:
+        return (
+            table.frontend.menu_title
+            or table.comment
+            or self._frontend_title(locale, table.entity_name, table.entity_name)
+        )
+
+    def _frontend_label(self, field: FieldIR, fallback_name: str, locale: str) -> str:
+        return (
+            str(field.frontend.label)
+            or str(field.comment)
+            or self._frontend_title(locale, fallback_name, fallback_name)
+        )
 
     def _frontend_widget(
         self,
@@ -925,16 +1067,38 @@ class CodeRenderer:
             return "boolean"
         return "plain"
 
-    def _frontend_placeholder(self, kind: object, label: str) -> str:
-        kind_name = str(kind)
-        if kind_name in {"date", "datetime", "boolean"}:
-            return f"Select {label}"
-        return f"Enter {label}"
+    def _frontend_messages(self, locale: str) -> Dict[str, str]:
+        return cast(
+            Dict[str, str], FRONTEND_MESSAGES.get(locale, FRONTEND_MESSAGES["zh-CN"])
+        )
 
-    def _frontend_title(self, name: str, fallback: str) -> str:
+    def _frontend_text(self, locale: str, key: str, **kwargs: object) -> str:
+        message = self._frontend_messages(locale)[key]
+        if kwargs:
+            return message.format(**kwargs)
+        return message
+
+    def _frontend_placeholder(self, locale: str, kind: object, label: str) -> str:
+        kind_name = str(kind)
+        key = (
+            "placeholder_select"
+            if kind_name in {"date", "datetime", "boolean", "select"}
+            else "placeholder_enter"
+        )
+        if self._is_preformatted_placeholder(label):
+            return label
+        return self._frontend_text(locale, key, label=label)
+
+    def _is_preformatted_placeholder(self, text: str) -> bool:
+        stripped = text.strip()
+        if not stripped:
+            return False
+        return stripped.startswith(("请输入", "请选择", "Enter ", "Select "))
+
+    def _frontend_title(self, locale: str, name: str, fallback: str) -> str:
         text = name or fallback
         if not text:
-            return "Untitled"
+            return self._frontend_text(locale, "untitled")
         normalized = re.sub(r"([a-z0-9])([A-Z])", r"\1 \2", text)
         normalized = normalized.replace("_", " ").replace("-", " ").strip()
         if not normalized:

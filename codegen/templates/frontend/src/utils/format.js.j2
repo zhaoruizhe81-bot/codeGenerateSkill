@@ -16,7 +16,7 @@ export function formatBoolean(value) {
   if (value === null || value === undefined) {
     return "--"
   }
-  return value ? "Yes" : "No"
+  return value ? "{{ messages.boolean_yes }}" : "{{ messages.boolean_no }}"
 }
 
 export function formatValue(value) {

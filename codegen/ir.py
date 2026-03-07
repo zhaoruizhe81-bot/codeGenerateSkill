@@ -185,6 +185,7 @@ class RelationIR:
 class FrontendIR:
     enabled: bool = False
     framework: str = "vue2"
+    locale: str = "zh-CN"
     output_dir: str = "frontend"
     app_title: str = ""
     backend_url: str = "http://127.0.0.1:8080"

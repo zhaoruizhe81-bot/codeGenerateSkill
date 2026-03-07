@@ -5,7 +5,7 @@
         <div class="brand-mark">SB</div>
         <div>
           <h1 class="brand-title">{{ frontend.app_title }}</h1>
-          <p class="brand-subtitle">Vue2 Admin Workspace</p>
+          <p class="brand-subtitle">{{ messages.layout_brand_subtitle }}</p>
         </div>
       </div>
 
@@ -19,7 +19,7 @@
       >
         <el-menu-item index="/dashboard">
           <i class="el-icon-data-board"></i>
-          <span slot="title">Dashboard</span>
+          <span slot="title">{{ messages.dashboard_title }}</span>
         </el-menu-item>
 
 {% for group in menu_groups %}        <el-submenu index="menu-group-{{ loop.index }}">
@@ -39,7 +39,7 @@
       <header class="layout-header">
         <div>
           <h2 class="layout-title" v-text="currentTitle"></h2>
-          <p class="layout-caption">Generated classic management frontend for {{ project.artifact_id }}</p>
+          <p class="layout-caption">{{ messages.layout_caption|replace("{artifact_id}", project.artifact_id) }}</p>
         </div>
         <div class="layout-chip">API {{ project.api_prefix }}</div>
       </header>

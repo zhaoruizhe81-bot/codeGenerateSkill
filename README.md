@@ -34,6 +34,7 @@ It can also generate a standalone Vue 2 admin frontend under `frontend/` when th
 - Seed data generation into `init.sql`
 - Standalone Vue 2 admin generation with routes, layout, axios wrapper, CRUD pages, and relation pages
 - Frontend fine-grained config for menu title/icon, field visibility, and component type
+- Built-in frontend locale dictionaries with `zh-CN` default and optional `en-US`
 
 ## Install
 
@@ -75,6 +76,7 @@ Common output files:
 - `examples/student_management.json`: simplest single-table student CRUD
 - `examples/student_class_management.json`: student + class relation example with indexes, foreign keys, sorting, and seed data
 - `examples/fullstack_sample.json`: backend + standalone Vue 2 frontend example
+- `examples/student_class_management_fullstack.json`: multi-table student + class fullstack example with Chinese frontend labels over English SQL field names
 
 ## Minimal Single-Table Example
 
@@ -377,12 +379,15 @@ Enable Vue 2 admin generation with a top-level `frontend` block:
 "frontend": {
   "enabled": true,
   "framework": "vue2",
+  "locale": "zh-CN",
   "outputDir": "frontend",
   "appTitle": "Demo Admin",
   "backendUrl": "http://127.0.0.1:8080",
   "devPort": 8081
 }
 ```
+
+`locale` defaults to `zh-CN`, so generated frontend copy and Element UI widgets are Chinese by default. Set it to `en-US` when you want an English UI.
 
 Generated frontend includes:
 
@@ -422,6 +427,10 @@ Per-field frontend metadata example:
   ]
 }
 ```
+
+Keep SQL field names in English, such as `student_name` or `class_id`. For a Chinese UI, provide Chinese `comment` values or set `frontend.label` / `frontend.placeholder` explicitly. The renderer prefers `frontend.label`, then falls back to `comment`, so database naming and UI naming stay decoupled.
+
+The same fallback also applies to relation result columns and sortable labels, which means one field-level label can drive both single-table pages and generated relation pages.
 
 ## Generated Runtime Behavior
 
