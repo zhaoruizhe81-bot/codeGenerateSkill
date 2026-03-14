@@ -11,6 +11,7 @@
 - 完整 Maven 项目结构
 - 基于 Java 8 的 Spring Boot 2.x 工程
 - 集成 Spring Security + JWT 的 RBAC 权限体系
+- 自动生成完整的 `/register`（注册，密码 BCrypt 加密存储）、`/login`（登录）、`/me`（获取当前用户信息）三个认证接口
 - 支持多租户拦截器（TenantLineInnerInterceptor）的单表 CRUD
 - 联表分页查询接口与包含逻辑删除过滤的 MyBatis XML SQL
 - 基于 EasyExcel 的数据导出接口 (`/export`)
@@ -25,7 +26,7 @@
 ## 当前支持的能力
 
 - **查询与关联**：单表与 Left/Inner Join 支持 `EQ`、`NE`、`LIKE`、`GT`、`GE`、`LT`、`LE`。
-- **安全管控**：内置 JWT 生成与校验，接口生成 `@PreAuthorize` 注解，自动暗注 5 张标准 RBAC 权限表。
+- **安全管控**：内置 JWT 生成与校验，接口生成 `@PreAuthorize` 注解，自动暗注 5 张标准 RBAC 权限表，并自动生成 **`/register`（BCrypt 加密注册）、`/login`（登录）、`/me`（返回当前用户角色 + 权限列表）** 三个开箱即用的完整鉴权接口。
 - **多租户**：基于请求头 `X-Tenant-Id` 或 JWT Claim 实现请求级别的租户上下文绑定与数据隔离。
 - **数据导出**：自动生成 `XxxExportDto` (带 `@ExcelProperty` 注解) 并利用 EasyExcel 写入响应流。
 - **文件上传**：原生支持 MultipartFile 上传落盘，前端自动挂载带鉴权头的 `<el-upload>` 组件 (`image-upload` / `file-upload`)。
@@ -86,6 +87,14 @@ python -m codegen -c examples/sample_security.json -o /tmp/codegen-out
 }
 ```
 开启后，解析器会自动隐式注入 `sys_user`、`sys_role`、`sys_user_role` 等 5 张表及初始的 admin 用户数据。
+
+自动生成以下三个开箱即用的认证接口：
+
+| 端点 | 方法 | 是否需要鉴权 | 说明 |
+|---|---|---|---|
+| `/api/auth/login` | POST | 否 | 返回已签名的 JWT Token |
+| `/api/auth/register` | POST | 否 | 创建账号，密码 BCrypt 加密，默认授予 `ROLE_USER` 角色 |
+| `/api/auth/me` | GET | 是 | 返回当前用户名、角色列表以及按钮权限列表 |
 
 你可以在具体业务表中配置 `auth` 来生成控制权限：
 

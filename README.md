@@ -11,6 +11,7 @@ It is designed for fast scaffolding of admin-style backends and goes beyond simp
 - Full Maven project structure
 - Spring Boot 2.x application with Java 8 target
 - Spring Security + JWT authentication with RBAC (Role-Based Access Control)
+- Auto-generated `/register`, `/login`, and `/me` auth endpoints (password BCrypt-hashed, default `ROLE_USER` assigned on registration)
 - MyBatis-Plus CRUD for single tables with Multi-tenancy interceptors
 - Relation query endpoints with generated join SQL and logical delete filtering
 - EasyExcel export endpoints for table data
@@ -26,7 +27,7 @@ It is designed for fast scaffolding of admin-style backends and goes beyond simp
 ## Supported Features
 
 - **Query & Relations**: `EQ`, `NE`, `LIKE`, `GT`, `GE`, `LT`, `LE` operators for tables and left/inner joins.
-- **Security**: Built-in JWT generation/validation, `@PreAuthorize` method security, automatic injection of 5 standard RBAC tables.
+- **Security**: Built-in JWT generation/validation, `@PreAuthorize` method security, automatic injection of 5 standard RBAC tables, **fully functional `/register` (BCrypt-hashed), `/login`, and `/me` (roles + permissions)** auth endpoints.
 - **Multi-tenancy**: Request-level tenant isolation using `TenantLineInnerInterceptor` and `X-Tenant-Id` or JWT claims.
 - **Data Export**: Built-in Alibaba EasyExcel integration generating `XxxExportDto` and `/export` APIs.
 - **File Upload**: Native multipart file upload to local directories with Vue `el-upload` integration.
@@ -87,6 +88,14 @@ Enable RBAC and JWT by defining the `security` block at the top level:
 }
 ```
 When enabled, the parser implicitly injects `sys_user`, `sys_role`, `sys_user_role`, `sys_menu_permission`, and `sys_role_permission` into your table list, complete with initial seed data.
+
+Three ready-to-use auth endpoints are generated automatically:
+
+| Endpoint | Method | Auth required | Description |
+|---|---|---|---|
+| `/api/auth/login` | POST | ✗ | Returns a signed JWT token |
+| `/api/auth/register` | POST | ✗ | Creates account with BCrypt password + `ROLE_USER` |
+| `/api/auth/me` | GET | ✓ | Returns username, roles list, and permissions list |
 
 You can protect your tables by adding the `auth` object:
 

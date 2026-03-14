@@ -11,13 +11,16 @@ import {{ package }}.mapper.SysUserRoleMapper;
 import {{ package }}.mapper.SysMenuPermissionMapper;
 import {{ package }}.mapper.SysRolePermissionMapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -31,18 +34,21 @@ public class UserDetailsServiceImpl implements UserDetailsService {
     private final SysUserRoleMapper sysUserRoleMapper;
     private final SysRolePermissionMapper sysRolePermissionMapper;
     private final SysMenuPermissionMapper sysMenuPermissionMapper;
+    private final PasswordEncoder passwordEncoder;
 
     public UserDetailsServiceImpl(
             SysUserMapper sysUserMapper,
             SysRoleMapper sysRoleMapper,
             SysUserRoleMapper sysUserRoleMapper,
             SysRolePermissionMapper sysRolePermissionMapper,
-            SysMenuPermissionMapper sysMenuPermissionMapper) {
+            SysMenuPermissionMapper sysMenuPermissionMapper,
+            @Lazy PasswordEncoder passwordEncoder) {
         this.sysUserMapper = sysUserMapper;
         this.sysRoleMapper = sysRoleMapper;
         this.sysUserRoleMapper = sysUserRoleMapper;
         this.sysRolePermissionMapper = sysRolePermissionMapper;
         this.sysMenuPermissionMapper = sysMenuPermissionMapper;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @Override
@@ -87,5 +93,40 @@ public class UserDetailsServiceImpl implements UserDetailsService {
                 true,
                 authorities
         );
+    }
+
+    /**
+     * Register a new user with an encoded password and default ROLE_USER.
+     *
+     * @param username the desired username
+     * @param rawPassword the plain-text password (will be BCrypt-hashed)
+     * @return {@code true} if registration succeeded, {@code false} if the username is already taken
+     */
+    @Transactional
+    public boolean registerUser(String username, String rawPassword) {
+        // Reject duplicate usernames
+        long count = sysUserMapper.selectCount(new QueryWrapper<SysUser>().eq("username", username));
+        if (count > 0) {
+            return false;
+        }
+
+        // Persist the new user
+        SysUser newUser = new SysUser();
+        newUser.setUsername(username);
+        newUser.setPassword(passwordEncoder.encode(rawPassword));
+        newUser.setEnabled(1);
+        sysUserMapper.insert(newUser);
+
+        // Assign the default ROLE_USER role (role_code = 'ROLE_USER')
+        SysRole defaultRole = sysRoleMapper.selectOne(
+                new QueryWrapper<SysRole>().eq("role_code", "ROLE_USER"));
+        if (defaultRole != null) {
+            SysUserRole userRole = new SysUserRole();
+            userRole.setUserId(newUser.getId());
+            userRole.setRoleId(defaultRole.getId());
+            sysUserRoleMapper.insert(userRole);
+        }
+
+        return true;
     }
 }

@@ -229,6 +229,21 @@ class RendererTest(unittest.TestCase):
         ]
 
         self.assertIn("sysUser.getEnabled() != null && sysUser.getEnabled() != 0", user_details)
+        self.assertIn("registerUser", user_details)
+        self.assertIn("passwordEncoder.encode", user_details)
+        self.assertIn("ROLE_USER", user_details)
+
+        auth_controller = files[
+            "backend/src/main/java/com/example/admin/security/AuthController.java"
+        ]
+        self.assertIn("/register", auth_controller)
+        self.assertIn("/me", auth_controller)
+        self.assertIn("SecurityContextHolder", auth_controller)
+
+        web_security = files[
+            "backend/src/main/java/com/example/admin/security/WebSecurityConfig.java"
+        ]
+        self.assertIn("/auth/register", web_security)
 
     def test_render_vue2_frontend_project(self) -> None:
         payload = json.loads(json.dumps(self.sample_payload))

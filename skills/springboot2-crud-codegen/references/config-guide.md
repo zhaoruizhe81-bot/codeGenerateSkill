@@ -63,7 +63,11 @@
 ```
 **行为说明**：
 - 一旦 `enabled: true`，生成的项目 `pom.xml` 自动引入 Security 和 JJWT。
-- 自动生成 `WebSecurityConfig`、`JwtTokenUtil`、`AuthController` 登录端点。
+- 自动生成 `WebSecurityConfig`、`JwtTokenUtil`、`AuthController` 等核心类。
+- 生成三个开箱即用的认证接口：
+  - `POST /api/auth/login` — 验证账密，返回 JWT Token
+  - `POST /api/auth/register` — 注册新账号（BCrypt 加密密码，默认授予 `ROLE_USER` 角色）
+  - `GET /api/auth/me` — 凭 Token 返回当前用户名 + 角色 + 权限列表（便于前端渲染菜单权限）
 - Parser 会隐式生成 `sys_user`, `sys_role`, `sys_user_role`, `sys_menu_permission`, `sys_role_permission` 这 5 张表的 Entity, Mapper, Service, Controller。
 - 默认在 `init.sql` 里塞入账号 `admin` / 密码 `123456`（经过 BCrypt 加密）的数据。
 

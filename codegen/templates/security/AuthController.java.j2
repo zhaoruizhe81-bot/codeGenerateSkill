@@ -4,7 +4,11 @@ import {{ package }}.common.Result;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -12,6 +16,10 @@ import org.springframework.web.bind.annotation.RestController;
 
 import javax.validation.Valid;
 import javax.validation.constraints.NotBlank;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("{{ project.api_prefix }}/auth")
@@ -27,6 +35,8 @@ public class AuthController {
         this.userDetailsService = userDetailsService;
     }
 
+    // ---- Request / Response inner classes ----
+
     public static class LoginRequest {
         @NotBlank(message = "Username cannot be blank")
         private String username;
@@ -40,6 +50,24 @@ public class AuthController {
         public void setPassword(String password) { this.password = password; }
     }
 
+    public static class RegisterRequest {
+        @NotBlank(message = "Username cannot be blank")
+        private String username;
+
+        @NotBlank(message = "Password cannot be blank")
+        private String password;
+
+        public String getUsername() { return username; }
+        public void setUsername(String username) { this.username = username; }
+        public String getPassword() { return password; }
+        public void setPassword(String password) { this.password = password; }
+    }
+
+    // ---- Endpoints ----
+
+    /**
+     * Login: authenticate credentials and return a signed JWT token.
+     */
     @PostMapping("/login")
     public Result<String> login(@Valid @RequestBody LoginRequest request) {
         try {
@@ -52,5 +80,49 @@ public class AuthController {
         final String token = jwtTokenUtil.generateToken(userDetails);
 
         return Result.success(token);
+    }
+
+    /**
+     * Register: create a new account with default ROLE_USER role.
+     * The password is stored as a BCrypt hash; plain text is never persisted.
+     */
+    @PostMapping("/register")
+    public Result<Void> register(@Valid @RequestBody RegisterRequest request) {
+        boolean ok = userDetailsService.registerUser(request.getUsername(), request.getPassword());
+        if (!ok) {
+            return Result.error(400, "Username already exists");
+        }
+        return Result.success(null);
+    }
+
+    /**
+     * Me: return the current authenticated user's username, roles, and authorities.
+     * The caller must supply a valid Bearer token in the Authorization header.
+     */
+    @GetMapping("/me")
+    public Result<Map<String, Object>> me() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated()) {
+            return Result.error(401, "Unauthorized");
+        }
+
+        List<String> authorities = auth.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .collect(Collectors.toList());
+
+        List<String> roles = authorities.stream()
+                .filter(a -> a.startsWith("ROLE_"))
+                .collect(Collectors.toList());
+
+        List<String> permissions = authorities.stream()
+                .filter(a -> !a.startsWith("ROLE_"))
+                .collect(Collectors.toList());
+
+        Map<String, Object> info = new HashMap<>();
+        info.put("username", auth.getName());
+        info.put("roles", roles);
+        info.put("permissions", permissions);
+
+        return Result.success(info);
     }
 }
