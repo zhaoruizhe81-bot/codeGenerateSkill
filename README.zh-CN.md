@@ -21,6 +21,9 @@
 - 本地文件上传接口 (`FileController`) 及静态资源映射
 - 包含内置 RBAC 系统表（`sys_user` 等）、外键、索引及种子数据的 `init.sql`
 - 开箱即用的 Swagger/Knife4j API 接口文档
+- 每张业务表自动生成 `POST /import` Excel 批量导入接口（EasyExcel）
+- `POST /auth/change-password` 密码修改接口（验旧后 BCrypt 加密保存）
+- 操作日志 AOP（`@SystemLog` 注解 + 切面 + `sys_log` 表，create/update/delete/import 自动留痕）
 - 包含登录页、Axios 拦截器、上传组件、以及智能表单校验的独立 Vue2 + Element UI 管理前端
 
 ## 当前支持的能力
@@ -29,9 +32,9 @@
 - **安全管控**：内置 JWT 生成与校验，接口生成 `@PreAuthorize` 注解，自动暗注 5 张标准 RBAC 权限表，并自动生成 **`/register`（BCrypt 加密注册）、`/login`（登录）、`/me`（返回当前用户角色 + 权限列表）** 三个开箱即用的完整鉴权接口。
 - **多租户**：基于请求头 `X-Tenant-Id` 或 JWT Claim 实现请求级别的租户上下文绑定与数据隔离。
 - **数据导出**：自动生成 `XxxExportDto` (带 `@ExcelProperty` 注解) 并利用 EasyExcel 写入响应流。
-- **文件上传**：原生支持 MultipartFile 上传落盘，前端自动挂载带鉴权头的 `<el-upload>` 组件 (`image-upload` / `file-upload`)。
-- **自动化测试**：生成对 Controller 的集成测试，自动 Mock 底层 Service。
-- **排序过滤**：安全的白名单单表与联表排序。
+- **Excel 批量导入**：每张表自动生成 `POST /import` 接口，使用 EasyExcel 读取上传的表格并批量插入数据库。
+- **密码修改**：`POST /auth/change-password` 接口先用 BCrypt 校验旧密码，再加密保存新密码。
+- **操作日志 AOP**：`@SystemLog` 注解自动加到 create/update/delete/import 方法上，切面将操作者、URI、IP、时间存入 `sys_log` 表，零配置实现操作审计。
 - **接口文档**: 根据表和字段注释自动整合 Swagger/Knife4j，自动生成完整的 `@Api`、`@ApiModelProperty` 等注解。
 - **前端表单校验**: 根据字段是否必填以及数据库预设长度，自动在前端 Vue 页面中挂载含有 `:rules` 和 `maxlength` 的校验拦截逻辑。
 - **前端生成**：动态路由、字典翻译、国际化切换 (`zh-CN` / `en-US`) 的全功能后台页面。

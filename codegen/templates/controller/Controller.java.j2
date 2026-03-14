@@ -7,15 +7,15 @@ import {{ package }}.dto.{{ table.query_dto_name }};
 import {{ package }}.dto.{{ table.update_dto_name }};
 import {{ package }}.dto.{{ table.entity_name }}ExportDto;
 import {{ package }}.entity.{{ table.entity_name }};
-{% for relation in relation_methods %}import {{ package }}.dto.{{ relation.dto_name }};
-import {{ package }}.dto.{{ relation.query_name }};
-{% endfor %}import {{ package }}.service.{{ table.service_name }};
+import {{ package }}.common.annotation.SystemLog;
+import {{ package }}.service.{{ table.service_name }};
 {% if project.enable_swagger %}import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 {% endif %}{% if table.auth and table.auth.enabled %}
 import org.springframework.security.access.prepost.PreAuthorize;
 {% endif %}
 import com.alibaba.excel.EasyExcel;
+import com.alibaba.excel.read.listener.PageReadListener;
 import org.springframework.beans.BeanUtils;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -26,11 +26,14 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.net.URLEncoder;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -50,7 +53,8 @@ import java.util.stream.Collectors;
 {% endif %}
     @PostMapping
 {% if project.enable_swagger %}    @ApiOperation(value = "Create new {{ table.entity_name }}")
-{% endif %}    public Result<{{ table.primary_key_java_type }}> create(@Validated @RequestBody {{ table.create_dto_name }} request) {
+{% endif %}    @SystemLog("Create {{ table.comment|default(table.entity_name) }}")
+    public Result<{{ table.primary_key_java_type }}> create(@Validated @RequestBody {{ table.create_dto_name }} request) {
         return Result.success({{ table.object_name }}Service.create(request));
     }
 
@@ -68,7 +72,8 @@ import java.util.stream.Collectors;
 {% endif %}
     @PutMapping("/{id}")
 {% if project.enable_swagger %}    @ApiOperation(value = "Update {{ table.entity_name }}")
-{% endif %}    public Result<Boolean> update(
+{% endif %}    @SystemLog("Update {{ table.comment|default(table.entity_name) }}")
+    public Result<Boolean> update(
             @PathVariable("id") {{ table.primary_key_java_type }} id,
             @Validated @RequestBody {{ table.update_dto_name }} request
     ) {
@@ -80,7 +85,8 @@ import java.util.stream.Collectors;
 {% endif %}
     @DeleteMapping("/{id}")
 {% if project.enable_swagger %}    @ApiOperation(value = "Delete {{ table.entity_name }} by ID")
-{% endif %}    public Result<Boolean> delete(@PathVariable("id") {{ table.primary_key_java_type }} id) {
+{% endif %}    @SystemLog("Delete {{ table.comment|default(table.entity_name) }}")
+    public Result<Boolean> delete(@PathVariable("id") {{ table.primary_key_java_type }} id) {
         return Result.success({{ table.object_name }}Service.deleteById(id));
     }
 
@@ -126,4 +132,23 @@ import java.util.stream.Collectors;
         return Result.success({{ table.object_name }}Service.{{ relation.method_name }}(query));
     }
 {% endfor %}
+
+    @PostMapping("/import")
+{% if project.enable_swagger %}    @ApiOperation(value = "Batch import {{ table.entity_name }} from Excel")
+{% endif %}    @SystemLog("Batch import {{ table.comment|default(table.entity_name) }}")
+    public Result<Void> importExcel(@RequestParam("file") MultipartFile file) throws IOException {
+        List<{{ table.entity_name }}ExportDto> rows = new ArrayList<>();
+        EasyExcel.read(file.getInputStream(), {{ table.entity_name }}ExportDto.class,
+                new PageReadListener<{{ table.entity_name }}ExportDto>(rows::addAll))
+                .sheet().doRead();
+        if (!rows.isEmpty()) {
+            List<{{ table.entity_name }}> entities = rows.stream().map(dto -> {
+                {{ table.entity_name }} entity = new {{ table.entity_name }}();
+                BeanUtils.copyProperties(dto, entity);
+                return entity;
+            }).collect(Collectors.toList());
+            {{ table.object_name }}Service.saveBatch(entities);
+        }
+        return Result.success(null);
+    }
 }

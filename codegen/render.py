@@ -206,6 +206,20 @@ class CodeRenderer:
                 "config/SwaggerConfig.java.j2", **base_context
             )
 
+        # AOP operation log — always generated so Controllers can use @SystemLog
+        files[f"{java_root}/common/annotation/SystemLog.java"] = self._render(
+            "common/annotation/SystemLog.java.j2", **base_context
+        )
+        files[f"{java_root}/common/aspect/SystemLogAspect.java"] = self._render(
+            "common/aspect/SystemLogAspect.java.j2", **base_context
+        )
+        files[f"{java_root}/entity/SysLog.java"] = self._render(
+            "entity/SysLog.java.j2", **base_context
+        )
+        files[f"{java_root}/mapper/SysLogMapper.java"] = self._render(
+            "mapper/SysLogMapper.java.j2", **base_context
+        )
+
         if project.tenant.enabled:
             files[f"{java_root}/common/TenantContextHolder.java"] = self._render(
                 "common/TenantContextHolder.java.j2", **base_context
@@ -1293,7 +1307,21 @@ class CodeRenderer:
             if table.seed_data:
                 sections.append(self._render_seed_data(table))
 
+        # Inject sys_log table for operation log AOP (always generated)
+        sections.append(
+            "CREATE TABLE IF NOT EXISTS `sys_log` (\n"
+            "  `id` bigint NOT NULL AUTO_INCREMENT COMMENT 'Primary key',\n"
+            "  `username` varchar(64) COMMENT 'Operator username',\n"
+            "  `operation` varchar(255) COMMENT 'Operation description',\n"
+            "  `request_uri` varchar(512) COMMENT 'Request URI',\n"
+            "  `ip` varchar(64) COMMENT 'Client IP address',\n"
+            "  `created_at` datetime COMMENT 'Log creation time',\n"
+            "  PRIMARY KEY (`id`)\n"
+            ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Operation log';"
+        )
+
         return "\n\n".join(sections) + "\n"
+
 
     def _render_seed_data(self, table: TableIR) -> str:
         rows: List[str] = []

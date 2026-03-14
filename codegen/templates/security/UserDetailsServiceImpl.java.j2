@@ -129,4 +129,23 @@ public class UserDetailsServiceImpl implements UserDetailsService {
 
         return true;
     }
+
+    /**
+     * Change a user's password after verifying the old one.
+     *
+     * @return {@code true} on success, {@code false} if the old password does not match or user not found
+     */
+    @Transactional
+    public boolean changePassword(String username, String oldPassword, String newPassword) {
+        SysUser user = sysUserMapper.selectOne(new QueryWrapper<SysUser>().eq("username", username));
+        if (user == null) {
+            return false;
+        }
+        if (!passwordEncoder.matches(oldPassword, user.getPassword())) {
+            return false;
+        }
+        user.setPassword(passwordEncoder.encode(newPassword));
+        sysUserMapper.updateById(user);
+        return true;
+    }
 }

@@ -22,6 +22,9 @@ It is designed for fast scaffolding of admin-style backends and goes beyond simp
 - `application.yml` with environment-variable datasource placeholders
 - `init.sql` with database creation, implicit RBAC system tables (`sys_user`, etc.), explicit/inferred constraints, and seed data
 - Auto-generated Swagger/Knife4j API documentation via Controller and DTO annotations
+- `POST /import` batch import endpoint (EasyExcel) paired with every `/export` endpoint
+- `POST /auth/change-password` secure password change (verifies old password before encoding new one)
+- Operation log AOP (`@SystemLog` annotation + aspect + `sys_log` table) auto-recording create/update/delete calls
 - Optional standalone Vue 2 + Element UI admin frontend (with login page, Axios interceptors, and auto-generated form validation)
 
 ## Supported Features
@@ -35,6 +38,9 @@ It is designed for fast scaffolding of admin-style backends and goes beyond simp
 - **Sorting**: Whitelist-based sorting for single-table and relation queries.
 - **API Documentation**: Built-in Swagger/Knife4j integration generating comprehensive docs via `@Api` and `@ApiModelProperty` annotations.
 - **Frontend Form Validation**: Client-side `:rules` automatically extracted and generated from database constraints (e.g., max length, not null).
+- **Excel Import**: `POST /import` endpoint generated alongside every `/export`, using EasyExcel to batch-insert rows from an uploaded spreadsheet.
+- **Change Password**: `POST /auth/change-password` verifies BCrypt old password and stores the new one encoded.
+- **Operation Log AOP**: `@SystemLog` annotation auto-placed on create/update/delete/import methods. An aspect persists records to `sys_log` (username, URI, IP, timestamp).
 - **Frontend Generation**: Vue 2 admin with dynamic routing, dictionary lookups, `image-upload` components, and locale switching (`zh-CN` / `en-US`).
 
 ## Install

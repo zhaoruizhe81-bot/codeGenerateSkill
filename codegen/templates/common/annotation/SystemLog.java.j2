@@ -1,0 +1,19 @@
+package {{ package }}.common.annotation;
+
+import java.lang.annotation.Documented;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
+
+/**
+ * Mark a controller method to have its invocation automatically recorded to sys_log.
+ * Usage: @SystemLog("Created user record")
+ */
+@Target(ElementType.METHOD)
+@Retention(RetentionPolicy.RUNTIME)
+@Documented
+public @interface SystemLog {
+    /** Human-readable description of the operation, used as the log title. */
+    String value() default "";
+}

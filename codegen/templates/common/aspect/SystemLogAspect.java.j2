@@ -1,0 +1,88 @@
+package {{ package }}.common.aspect;
+
+import {{ package }}.common.annotation.SystemLog;
+import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import org.aspectj.lang.JoinPoint;
+import org.aspectj.lang.annotation.AfterReturning;
+import org.aspectj.lang.annotation.Aspect;
+import org.aspectj.lang.reflect.MethodSignature;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Component;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
+
+import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
+import java.lang.reflect.Method;
+import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
+
+/**
+ * AOP aspect that automatically persists a SysLog entry after any method
+ * annotated with {@link SystemLog} returns successfully.
+ *
+ * Auto-captured fields: username, IP address, operation title, request URI.
+ */
+@Aspect
+@Component
+public class SystemLogAspect {
+
+    private static final Logger log = LoggerFactory.getLogger(SystemLogAspect.class);
+
+    @Resource
+    private {{ package }}.mapper.SysLogMapper sysLogMapper;
+
+    @AfterReturning(pointcut = "@annotation({{ package }}.common.annotation.SystemLog)")
+    public void afterReturning(JoinPoint joinPoint) {
+        try {
+            MethodSignature signature = (MethodSignature) joinPoint.getSignature();
+            Method method = signature.getMethod();
+            SystemLog annotation = method.getAnnotation(SystemLog.class);
+            String operation = annotation != null ? annotation.value() : method.getName();
+
+            String username = "anonymous";
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            if (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getPrincipal())) {
+                username = auth.getName();
+            }
+
+            String requestUri = "";
+            String ip = "";
+            ServletRequestAttributes attrs = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+            if (attrs != null) {
+                HttpServletRequest request = attrs.getRequest();
+                requestUri = request.getRequestURI();
+                ip = getClientIp(request);
+            }
+
+            {{ package }}.entity.SysLog sysLog = new {{ package }}.entity.SysLog();
+            sysLog.setUsername(username);
+            sysLog.setOperation(operation);
+            sysLog.setRequestUri(requestUri);
+            sysLog.setIp(ip);
+            sysLog.setCreatedAt(LocalDateTime.now());
+            sysLogMapper.insert(sysLog);
+        } catch (Exception e) {
+            log.warn("Failed to persist system log entry", e);
+        }
+    }
+
+    private String getClientIp(HttpServletRequest request) {
+        String ip = request.getHeader("X-Forwarded-For");
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getHeader("X-Real-IP");
+        }
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getRemoteAddr();
+        }
+        // In case of multiple proxies, take only the first IP
+        if (ip != null && ip.contains(",")) {
+            ip = ip.split(",")[0].trim();
+        }
+        return ip;
+    }
+}

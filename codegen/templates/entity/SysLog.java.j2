@@ -1,0 +1,46 @@
+package {{ package }}.entity;
+
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
+
+import java.time.LocalDateTime;
+
+/**
+ * Operation log entity. Records who did what, when, and from where.
+ * Populated automatically by {@code SystemLogAspect}.
+ */
+@TableName("sys_log")
+public class SysLog {
+
+    @TableId(value = "id", type = IdType.AUTO)
+    private Long id;
+
+    /** The username from the JWT security context. */
+    private String username;
+
+    /** Human-readable operation description from @SystemLog annotation. */
+    private String operation;
+
+    /** Request URI of the call being logged. */
+    private String requestUri;
+
+    /** Client IP address (supports X-Forwarded-For header). */
+    private String ip;
+
+    /** Timestamp when the log entry was created. */
+    private LocalDateTime createdAt;
+
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+    public String getUsername() { return username; }
+    public void setUsername(String username) { this.username = username; }
+    public String getOperation() { return operation; }
+    public void setOperation(String operation) { this.operation = operation; }
+    public String getRequestUri() { return requestUri; }
+    public void setRequestUri(String requestUri) { this.requestUri = requestUri; }
+    public String getIp() { return ip; }
+    public void setIp(String ip) { this.ip = ip; }
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+}

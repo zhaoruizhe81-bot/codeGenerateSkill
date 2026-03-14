@@ -125,4 +125,34 @@ public class AuthController {
 
         return Result.success(info);
     }
+
+    /**
+     * Change password: verify old password, then store BCrypt-encoded new password.
+     * Requires a valid Bearer token (authenticated endpoint).
+     */
+    @PostMapping("/change-password")
+    public Result<Void> changePassword(@Valid @RequestBody ChangePasswordRequest request) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated()) {
+            return Result.error(401, "Unauthorized");
+        }
+        boolean ok = userDetailsService.changePassword(auth.getName(), request.getOldPassword(), request.getNewPassword());
+        if (!ok) {
+            return Result.error(400, "Old password is incorrect");
+        }
+        return Result.success(null);
+    }
+
+    public static class ChangePasswordRequest {
+        @NotBlank(message = "Old password cannot be blank")
+        private String oldPassword;
+
+        @NotBlank(message = "New password cannot be blank")
+        private String newPassword;
+
+        public String getOldPassword() { return oldPassword; }
+        public void setOldPassword(String oldPassword) { this.oldPassword = oldPassword; }
+        public String getNewPassword() { return newPassword; }
+        public void setNewPassword(String newPassword) { this.newPassword = newPassword; }
+    }
 }
