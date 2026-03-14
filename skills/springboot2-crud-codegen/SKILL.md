@@ -18,7 +18,7 @@ description: Work with the `springboot2-crud-codegen` repository to understand d
 ### 1. 选择最近的起点
 
 - 完整企业级后台（带权限、多租户、前端）：从 `examples/sample_security.json` 开始。
-- 单表最小 CRUD：从 `examples/student_management.json` 或 `examples/student_single_table.json` 开始。
+- 单表最小 CRUD：从 `examples/student_single_table.json` 开始。
 - 双表 + 联表查询：从 `examples/sample.json` 或 `examples/student_class_management.json` 开始。
 
 ### 2. 编写或修改配置
