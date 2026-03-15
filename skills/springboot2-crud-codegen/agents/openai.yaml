@@ -1,0 +1,4 @@
+interface:
+  display_name: "SpringBoot CRUD Codegen"
+  short_description: "Create and debug Spring Boot CRUD codegen workflows"
+  default_prompt: "Use $springboot2-crud-codegen to create, debug, or extend a Spring Boot 2 CRUD generator config and its generated output."

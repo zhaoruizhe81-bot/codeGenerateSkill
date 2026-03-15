@@ -1,63 +1,128 @@
 # 项目总览
 
+## 目录
+
+- [仓库定位](#仓库定位)
+- [先做任务分流](#先做任务分流)
+- [核心流程](#核心流程)
+- [模块职责](#模块职责)
+- [示例配置起点](#示例配置起点)
+- [关键命令](#关键命令)
+- [测试与校验要点](#测试与校验要点)
+- [重要输入与输出](#重要输入与输出)
+- [项目边界](#项目边界)
+- [修改时的仓库约束](#修改时的仓库约束)
+
 ## 仓库定位
 
-`springboot2-crud-codegen` 是一个 Python CLI。它把 JSON 配置转换成企业级可运行的 Spring Boot 2 + MyBatis-Plus CRUD 工程（内置 Spring Security, JJWT, EasyExcel, MockMvc 测试，多租户，操作日志 AOP，批量删除，批量导入，仪表盘统计），并生成带有种子数据的 `init.sql`；启用 `frontend` 后，还能生成包含登录逻辑的独立 Vue2 + Element UI 管理前端。
+`springboot2-crud-codegen` 是一个 Python CLI。它把 JSON 配置转换成企业级 Spring Boot 2 + MyBatis-Plus CRUD 工程，并可选生成独立 Vue 2 + Element UI 管理前端。
+
+默认可生成或注入的能力包括：
+
+- Spring Security + JWT + RBAC
+- 多租户拦截器
+- Swagger/Knife4j 文档
+- Excel 导入/导出
+- 文件上传
+- 操作日志 AOP
+- 批量删除
+- 仪表盘统计
+- MockMvc 单元测试
+- 带表单校验的 Vue 2 管理前端
+
+## 先做任务分流
+
+- 用户要“写配置 / 改配置”：先从示例配置开始，再读 `references/config-guide.md`
+- 用户要“生成项目 / 检查输出”：先跑 CLI，再检查生成目录
+- 用户要“修配置报错”：先判断是 schema 还是 parser 层
+- 用户要“修生成器 bug / 扩能力”：先定位在 `cli`、`schema`、`parser`、`render`、`templates` 还是 `writer`
 
 ## 核心流程
 
 仓库主流程固定为：`load -> validate -> parse -> render -> write`。
 
-- `codegen/cli.py`：解析命令行参数、处理退出码、调用主流程。
-- `codegen/schema.py`：定义 JSON Schema，并把 schema 报错格式化成 `tables[0].field` 风格路径。
-- `codegen/parser.py`：做语义校验并把配置转换成内部 IR；这也是处理 **RBAC 系统表隐式注入（暗注）** 的核心。
-- `codegen/ir.py`：定义 `ProjectIR`、`TableIR`、`RelationIR`、`SecurityIR`、`TenantIR` 等数据结构。
-- `codegen/render.py`：把 IR 渲染为内存中文件映射；负责后端、SQL、导出 DTO、单元测试、联表查询（自带 logicDelete 过滤）、可选前端。
-- `codegen/writer.py`：把文件映射写到磁盘。
-- `codegen/templates/`：Jinja 模板，包含 `test/` 目录和 `security/` 目录等高级企业级特性模板。
+不要跳过中间层直接猜问题：配置是否有效看 `validate`，语义是否正确看 `parse`，输出内容是否正确看 `render`，落盘行为是否正确看 `write`。
 
-## 重要输入与输出
+## 模块职责
 
-- 典型输入：`examples/sample_security.json`
-- 典型输出：`<output>/<artifactId>/backend/...`
-- 前端输出：`<output>/<artifactId>/frontend/...`，仅当顶层 `frontend.enabled = true`
+- `codegen/cli.py`：命令行参数、顶层错误处理、退出码、`--force/--no-force`
+- `codegen/schema.py`：JSON Schema 定义、错误路径格式化
+- `codegen/parser.py`：语义校验、IR 构建、RBAC 系统表暗注
+- `codegen/ir.py`：`ProjectIR`、`TableIR`、`RelationIR` 等内部结构
+- `codegen/render.py`：渲染后端、SQL、测试、前端等文件映射
+- `codegen/type_mapping.py`：DB 类型、Java 类型、命名转换
+- `codegen/writer.py`：把文件映射写入磁盘
+- `codegen/templates/`：Jinja 模板目录
 
-常见输出文件：
+## 示例配置起点
 
-- `backend/pom.xml`（包含 spring-boot-starter-security, jjwt, easyexcel, knife4j 等）
-- `backend/src/main/resources/application.yml`
-- `backend/src/main/resources/init.sql`（包含生成的业务表与 RBAC 五张系统表）
-- `backend/src/main/java/<basePackage>/config/SwaggerConfig.java` (Swagger API 文档配置)
-- `backend/src/main/java/<basePackage>/security/WebSecurityConfig.java` 等
-- `backend/src/main/java/<basePackage>/common/FileController.java` (本地上传接口)
-- `backend/src/main/java/<basePackage>/common/annotation/SystemLog.java` (@SystemLog 操作日志注解)
-- `backend/src/main/java/<basePackage>/common/aspect/SystemLogAspect.java` (操作日志 AOP 切面)
-- `backend/src/main/java/<basePackage>/entity/SysLog.java` (日志实体)
-- `backend/src/main/java/<basePackage>/mapper/SysLogMapper.java` (日志 Mapper)
-- `backend/src/main/java/<basePackage>/controller/DashboardController.java` (仪表盘统计)
-- `backend/src/test/java/<basePackage>/controller/XxxControllerTest.java` (MockMvc 单元测试)
-- `frontend/src/views/login/index.vue`
-- `frontend/src/views/<xxx>/index.vue` (自动嵌入基于 DB 长度构成的 rules，包含必填/字符控制功能)
-- `frontend/src/utils/request.js` (含 Token 注入与 401 拦截)
+- `examples/student_single_table.json`：单表 CRUD 最小起点
+- `examples/sample.json`：双表与基础联表查询
+- `examples/student_class_management.json`：更完整的教学管理示例
+- `examples/sample_security.json`：权限、多租户、前端、企业级能力最全的起点
+
+优先复制最近的示例再增量修改，不要从空白 JSON 开始拼大配置。
 
 ## 关键命令
 
 - 安装：`python -m pip install -e .`
-- 运行示例：`python -m codegen -c examples/sample_security.json -o /tmp/codegen-out`
-- 控制台命令：`codegen -c examples/sample_security.json -o /tmp/codegen-out`
+- 运行模块：`python -m codegen -c examples/sample_security.json -o /tmp/codegen-out`
+- 运行控制台命令：`codegen -c examples/sample_security.json -o /tmp/codegen-out`
 - 全量测试：`python -m unittest discover -s tests -v`
 - 语法检查：`python -m compileall codegen tests`
 
+## 测试与校验要点
+
+- `tests/` 不是 Python package，不要用 `tests.test_xxx...` 这种 dotted path。
+- 单文件测试可用：
+  - `python -m unittest discover -s tests -p 'test_parser.py' -v`
+  - `python -m unittest discover -s tests -p 'test_renderer.py' -v`
+- 单方法测试优先用：
+  - `python -m unittest discover -s tests -k <substring> -v`
+- 不要使用：
+  - pytest node id
+  - `python -m unittest -v`
+
+改行为时的最低验证标准：
+
+1. `python -m compileall codegen tests`
+2. `python -m unittest discover -s tests -v`
+3. `python -m codegen -c <config> -o <tmp>`
+
+## 重要输入与输出
+
+- 典型输入：`examples/sample_security.json`
+- 后端输出：`<output>/<artifactId>/backend/...`
+- 前端输出：`<output>/<artifactId>/frontend/...`，仅在 `frontend.enabled = true` 时生成
+
+常看生成文件：
+
+- `backend/pom.xml`
+- `backend/src/main/resources/application.yml`
+- `backend/src/main/resources/init.sql`
+- `backend/src/main/java/<basePackage>/security/*`
+- `backend/src/main/java/<basePackage>/controller/*`
+- `backend/src/main/java/<basePackage>/common/FileController.java`
+- `backend/src/main/java/<basePackage>/common/annotation/SystemLog.java`
+- `backend/src/main/java/<basePackage>/common/aspect/SystemLogAspect.java`
+- `backend/src/main/java/<basePackage>/controller/DashboardController.java`
+- `backend/src/test/java/<basePackage>/controller/*Test.java`
+- `frontend/src/views/login/index.vue`
+- `frontend/src/views/<xxx>/index.vue`
+- `frontend/src/utils/request.js`
+
 ## 项目边界
 
-- 仅支持 Java 8。
-- 仅支持 Spring Boot 2.x。
-- SQL 和 datasource 以 MySQL 为主。
-- 前端仅支持 Vue2 + Element UI。
-- Python 测试框架是 `unittest`，不是 pytest。
+- 仅支持 Java 8
+- 仅支持 Spring Boot 2.x
+- SQL 与 datasource 以 MySQL 为主
+- 前端仅支持 Vue 2 + Element UI
+- Python 测试框架是 `unittest`，不是 pytest
 
 ## 修改时的仓库约束
 
-- 不要无声改变 schema 语义。
-- 改解析或渲染逻辑时，同时看模板和测试。
-- 改生成结构时，确保导入、路径、命名保持稳定且可重复生成。
+- 不要无声改变 schema 语义
+- 改解析或渲染逻辑时，同时看模板和测试
+- 改生成结构时，保证导入、路径、命名稳定且可重复生成
+- 改 parser 或 render 行为时，优先补针对性的成功/失败测试
+- 改模板时，同时检查对应的 `render.py` 分支和输出路径
