@@ -73,7 +73,7 @@
   - `GET /api/auth/me` — 凭 Token 返回当前用户名 + 角色 + 权限列表（便于前端渲染菜单权限）
   - `POST /api/auth/change-password` — 先 BCrypt 校验旧密码，再加密存储新密码
 - Parser 会隐式生成 `sys_user`, `sys_role`, `sys_user_role`, `sys_menu_permission`, `sys_role_permission` 这 5 张表的 Entity, Mapper, Service, Controller。
-- 默认在 `init.sql` 里塞入账号 `admin` / 密码 `123456`（经过 BCrypt 加密）的数据。
+- 默认在 `init.sql` 里塞入账号 `admin` / 密码 `123456`（经过 BCrypt 加密，可直接登录）的数据。
 - `init.sql` 还会自动补齐：
   - 超级管理员角色
   - 默认注册角色
@@ -127,6 +127,7 @@
 - 开启后，生成的 `MybatisPlusConfig.java` 注入多租户拦截器。
 - `JwtAuthenticationFilter` 会自动尝试从 HTTP Header 的 `X-Tenant-Id` 或 JWT claims 里读取 tenant ID 存入 `TenantContextHolder` (ThreadLocal)。
 - 之后所有增删改查 SQL MyBatis-Plus 都会自动拼上 `WHERE tenant_id = ?`。
+- 生成器会自动忽略 `sys_user`、`sys_role`、`sys_user_role`、`sys_menu_permission`、`sys_role_permission`、`sys_dict_type`、`sys_dict_item`、`sys_log` 等系统表，避免认证、字典读取和日志写入被租户条件误拦。
 
 ### Swagger/Knife4j 接口文档生成
 

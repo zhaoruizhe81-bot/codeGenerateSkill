@@ -9,7 +9,6 @@
   },
   "datasource": {
     "url": "jdbc:mysql://127.0.0.1:3306/preset_light_auth?useSSL=false&serverTimezone=UTC",
-    "databaseName": "preset_light_auth",
     "username": "root",
     "password": "root",
     "driverClassName": "com.mysql.cj.jdbc.Driver"
@@ -34,13 +33,7 @@
       ],
       "sortableFields": ["id", "created_at"],
       "auth": {
-        "roles": ["ADMIN", "USER"],
-        "permissions": {
-          "query": "profile:view",
-          "create": "profile:add",
-          "update": "profile:edit",
-          "delete": "profile:delete"
-        }
+        "roles": ["ADMIN", "USER"]
       },
       "fields": [
         {"name": "id", "type": "bigint", "nullable": false, "idType": "AUTO", "comment": "主键"},

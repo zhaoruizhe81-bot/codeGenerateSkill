@@ -9,7 +9,6 @@
   },
   "datasource": {
     "url": "jdbc:mysql://127.0.0.1:3306/preset_audit_admin?useSSL=false&serverTimezone=UTC",
-    "databaseName": "preset_audit_admin",
     "username": "root",
     "password": "root",
     "driverClassName": "com.mysql.cj.jdbc.Driver"
@@ -21,17 +20,12 @@
     }
   },
   "backend": {
-    "outputDir": "backend",
     "uploadDir": "uploads"
   },
   "frontend": {
     "enabled": true,
-    "framework": "vue2",
     "locale": "zh-CN",
-    "outputDir": "frontend",
-    "appTitle": "审计后台",
-    "backendUrl": "http://127.0.0.1:8080",
-    "devPort": 8081
+    "appTitle": "审计后台"
   },
   "dictionaries": [
     {
@@ -53,12 +47,11 @@
       "primaryKey": "id",
       "queryableFields": [
         {"name": "record_title", "operator": "LIKE"},
-        {"name": "status", "operator": "EQ"}
+        "status"
       ],
       "sortableFields": ["id", "created_at"],
       "frontend": {
-        "menuTitle": "审计记录",
-        "menuIcon": "el-icon-document-checked"
+        "menuTitle": "审计记录"
       },
       "fields": [
         {"name": "id", "type": "bigint", "nullable": false, "idType": "AUTO", "comment": "主键"},

@@ -114,6 +114,22 @@ class RendererTest(unittest.TestCase):
         self.assertIn('strictInsertFill(metaObject, "updatedAt"', handler)
         self.assertIn('strictUpdateFill(metaObject, "updatedAt"', handler)
 
+    def test_render_tenant_config_ignores_system_tables(self) -> None:
+        payload = json.loads(json.dumps(self.sample_security_payload))
+        payload["global"]["tenant"] = {"enabled": True, "column": "tenant_id"}
+
+        project = parse_config(payload)
+        files = CodeRenderer().render_project(project)
+
+        config_java = files[
+            "backend/src/main/java/com/example/admin/config/MybatisPlusConfig.java"
+        ]
+
+        self.assertIn('"sys_user".equalsIgnoreCase(tableName)', config_java)
+        self.assertIn('"sys_role".equalsIgnoreCase(tableName)', config_java)
+        self.assertIn('"sys_dict_type".equalsIgnoreCase(tableName)', config_java)
+        self.assertIn('"sys_log".equalsIgnoreCase(tableName)', config_java)
+
     def test_render_service_and_relation_mapper_support_extended_operators_and_sorting(
         self,
     ) -> None:
@@ -225,6 +241,7 @@ class RendererTest(unittest.TestCase):
         user_details = files[
             "backend/src/main/java/com/example/admin/security/UserDetailsServiceImpl.java"
         ]
+        init_sql = files["backend/src/main/resources/init.sql"]
 
         self.assertIn("sysUser.getEnabled() != null && sysUser.getEnabled() != 0", user_details)
         self.assertIn("registerUser", user_details)
@@ -232,6 +249,7 @@ class RendererTest(unittest.TestCase):
         self.assertIn('DEFAULT_ROLE_CODES = Arrays.asList("ROLE_USER")', user_details)
         self.assertIn('authority = "ROLE_" + authority;', user_details)
         self.assertIn('Missing default registration role: ', user_details)
+        self.assertIn("$2y$10$6nO2SjLp7N7EoenOqL8bgOHwNHF9h3Gq8rivStyFnx/SnwbBSfcBa", init_sql)
 
         auth_controller = files[
             "backend/src/main/java/com/example/admin/security/AuthController.java"
@@ -341,6 +359,34 @@ class RendererTest(unittest.TestCase):
         self.assertIn("dictionaryOptions", relation_view)
         self.assertIn("fetchDictionaryItems", dictionary_api)
         self.assertIn("formatDictionaryValue", dictionary_util)
+
+    def test_render_dictionaries_without_security_do_not_emit_security_imports(self) -> None:
+        payload = json.loads(json.dumps(self.sample_payload))
+        payload["dictionaries"] = [
+            {
+                "key": "user_status",
+                "name": "User Status",
+                "valueType": "integer",
+                "items": [
+                    {"label": "Disabled", "value": 0},
+                    {"label": "Enabled", "value": 1},
+                ],
+            }
+        ]
+        payload["tables"][0]["fields"][2]["dictKey"] = "user_status"
+
+        project = parse_config(payload)
+        files = CodeRenderer().render_project(project)
+
+        dict_type_controller = files[
+            "backend/src/main/java/com/example/demo/controller/SysDictTypeController.java"
+        ]
+        system_log_aspect = files[
+            "backend/src/main/java/com/example/demo/common/aspect/SystemLogAspect.java"
+        ]
+
+        self.assertNotIn("PreAuthorize", dict_type_controller)
+        self.assertNotIn("SecurityContextHolder", system_log_aspect)
 
     def test_render_vue2_frontend_project(self) -> None:
         payload = json.loads(json.dumps(self.sample_payload))

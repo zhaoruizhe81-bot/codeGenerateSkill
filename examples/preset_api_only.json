@@ -9,7 +9,6 @@
   },
   "datasource": {
     "url": "jdbc:mysql://127.0.0.1:3306/preset_api_only?useSSL=false&serverTimezone=UTC",
-    "databaseName": "preset_api_only",
     "username": "root",
     "password": "root",
     "driverClassName": "com.mysql.cj.jdbc.Driver"
@@ -22,7 +21,7 @@
       "primaryKey": "id",
       "queryableFields": [
         {"name": "customer_name", "operator": "LIKE"},
-        {"name": "status", "operator": "EQ"}
+        "status"
       ],
       "sortableFields": ["id", "customer_name", "created_at"],
       "fields": [

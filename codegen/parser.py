@@ -364,25 +364,16 @@ def _dictionary_seed_value(value: Any, value_type: str) -> str:
     return str(normalized)
 
 
-def _inject_dictionary_tables(payload: Dict[str, Any]) -> None:
+def _inject_dictionary_tables(payload: Dict[str, Any], security_enabled: bool) -> None:
     existing_tables = {t["name"] for t in payload.get("tables", [])}
     dictionary_tables = []
 
     if "sys_dict_type" not in existing_tables:
-        dictionary_tables.append(
-            {
+        table_cfg = {
                 "name": "sys_dict_type",
                 "comment": "Dictionary Type",
                 "entityName": "SysDictType",
                 "primaryKey": "id",
-                "auth": {
-                    "permissions": {
-                        "query": "system:dict-type:view",
-                        "create": "system:dict-type:add",
-                        "update": "system:dict-type:edit",
-                        "delete": "system:dict-type:delete",
-                    }
-                },
                 "queryableFields": [
                     {"name": "dict_key", "operator": "LIKE"},
                     {"name": "dict_name", "operator": "LIKE"},
@@ -400,23 +391,23 @@ def _inject_dictionary_tables(payload: Dict[str, Any]) -> None:
                     {"name": "created_at", "type": "datetime", "nullable": False, "autoFill": "INSERT", "comment": "Created Time"},
                 ],
             }
-        )
+        if security_enabled:
+            table_cfg["auth"] = {
+                "permissions": {
+                    "query": "system:dict-type:view",
+                    "create": "system:dict-type:add",
+                    "update": "system:dict-type:edit",
+                    "delete": "system:dict-type:delete",
+                }
+            }
+        dictionary_tables.append(table_cfg)
 
     if "sys_dict_item" not in existing_tables:
-        dictionary_tables.append(
-            {
+        table_cfg = {
                 "name": "sys_dict_item",
                 "comment": "Dictionary Item",
                 "entityName": "SysDictItem",
                 "primaryKey": "id",
-                "auth": {
-                    "permissions": {
-                        "query": "system:dict-item:view",
-                        "create": "system:dict-item:add",
-                        "update": "system:dict-item:edit",
-                        "delete": "system:dict-item:delete",
-                    }
-                },
                 "queryableFields": [
                     {"name": "dict_type_id", "operator": "EQ"},
                     {"name": "item_label", "operator": "LIKE"},
@@ -443,7 +434,16 @@ def _inject_dictionary_tables(payload: Dict[str, Any]) -> None:
                     {"name": "created_at", "type": "datetime", "nullable": False, "autoFill": "INSERT", "comment": "Created Time"},
                 ],
             }
-        )
+        if security_enabled:
+            table_cfg["auth"] = {
+                "permissions": {
+                    "query": "system:dict-item:view",
+                    "create": "system:dict-item:add",
+                    "update": "system:dict-item:edit",
+                    "delete": "system:dict-item:delete",
+                }
+            }
+        dictionary_tables.append(table_cfg)
 
     payload["tables"] = dictionary_tables + payload.get("tables", [])
 
@@ -575,7 +575,7 @@ def parse_config(payload: Dict[str, Any]) -> ProjectIR:
     if security_ir.enabled:
         _inject_rbac_tables(payload, security_ir.rbac)
     if dictionaries_ir:
-        _inject_dictionary_tables(payload)
+        _inject_dictionary_tables(payload, security_ir.enabled)
 
     if not _is_valid_package(project_cfg["basePackage"]):
         issues.append(
@@ -1483,7 +1483,7 @@ def _inject_rbac_tables(payload: Dict[str, Any], rbac_config: RbacConfigIR) -> N
                 {"name": "created_at", "type": "datetime", "nullable": False, "autoFill": "INSERT", "comment": "Created Time"}
             ],
             "seedData": [
-                {"id": 1, "username": "admin", "password": "$2a$10$7JB720yubVSZvUI0rEqK/.VqGOZTH.ulu33dHOiBE8ByOhJIrdAu2", "enabled": True, "created_at": "2024-01-01 00:00:00"}
+                {"id": 1, "username": "admin", "password": "$2y$10$6nO2SjLp7N7EoenOqL8bgOHwNHF9h3Gq8rivStyFnx/SnwbBSfcBa", "enabled": True, "created_at": "2024-01-01 00:00:00"}
             ]
         })
     if "sys_role" not in existing_tables:

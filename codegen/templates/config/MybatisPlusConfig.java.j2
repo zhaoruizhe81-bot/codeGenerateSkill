@@ -36,7 +36,14 @@ public class MybatisPlusConfig {
 
             @Override
             public boolean ignoreTable(String tableName) {
-                return false; // Can add table exclusions here if needed
+                return "sys_user".equalsIgnoreCase(tableName)
+                        || "sys_role".equalsIgnoreCase(tableName)
+                        || "sys_user_role".equalsIgnoreCase(tableName)
+                        || "sys_menu_permission".equalsIgnoreCase(tableName)
+                        || "sys_role_permission".equalsIgnoreCase(tableName)
+                        || "sys_dict_type".equalsIgnoreCase(tableName)
+                        || "sys_dict_item".equalsIgnoreCase(tableName)
+                        || "sys_log".equalsIgnoreCase(tableName);
             }
         }));
 {% endif %}

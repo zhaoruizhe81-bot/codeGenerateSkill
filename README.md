@@ -109,6 +109,7 @@ Enable RBAC and JWT by defining the `security` block at the top level:
 ```
 When enabled, the parser implicitly injects `sys_user`, `sys_role`, `sys_user_role`, `sys_menu_permission`, and `sys_role_permission` into your table list, seeds the super admin role, default registration roles, and grants the super admin role all generated permissions. Role values are normalized to `ROLE_*`, so both `ADMIN` and `ROLE_ADMIN` are accepted in config.
 If `defaultRoles` is omitted or normalized down to an empty list, the generator falls back to `ROLE_USER` so `/register` still produces a usable account.
+The generated `init.sql` also seeds a working `admin / 123456` account for quick local verification.
 
 Three ready-to-use auth endpoints are generated automatically:
 
@@ -150,6 +151,7 @@ Enable data isolation by adding tenant config to `global`:
 }
 ```
 Role names in `auth.roles` may be written either as `ADMIN` / `MANAGER` or as `ROLE_ADMIN` / `ROLE_MANAGER`. The generator normalizes them, while the generated `@PreAuthorize` expressions keep the `hasAnyRole('ADMIN', ...)` form expected by Spring Security.
+When tenant mode is enabled, the generated interceptor automatically ignores built-in system tables such as RBAC tables, dictionary tables, and `sys_log`, so authentication and dictionary lookups are not polluted by tenant filters.
 
 ### Swagger Documentation (`global.enableSwagger`)
 

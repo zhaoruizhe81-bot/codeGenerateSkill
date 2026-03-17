@@ -9,19 +9,14 @@
   },
   "datasource": {
     "url": "jdbc:mysql://127.0.0.1:3306/preset_backend_frontend?useSSL=false&serverTimezone=UTC",
-    "databaseName": "preset_backend_frontend",
     "username": "root",
     "password": "root",
     "driverClassName": "com.mysql.cj.jdbc.Driver"
   },
   "frontend": {
     "enabled": true,
-    "framework": "vue2",
     "locale": "zh-CN",
-    "outputDir": "frontend",
-    "appTitle": "业务后台",
-    "backendUrl": "http://127.0.0.1:8080",
-    "devPort": 8081
+    "appTitle": "业务后台"
   },
   "dictionaries": [
     {
@@ -42,12 +37,11 @@
       "primaryKey": "id",
       "queryableFields": [
         {"name": "username", "operator": "LIKE"},
-        {"name": "status", "operator": "EQ"}
+        "status"
       ],
       "sortableFields": ["id", "username", "created_at"],
       "frontend": {
-        "menuTitle": "用户管理",
-        "menuIcon": "el-icon-user"
+        "menuTitle": "用户管理"
       },
       "fields": [
         {"name": "id", "type": "bigint", "nullable": false, "idType": "AUTO", "comment": "主键"},

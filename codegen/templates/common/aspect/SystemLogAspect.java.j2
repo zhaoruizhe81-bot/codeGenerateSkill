@@ -8,9 +8,9 @@ import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.reflect.MethodSignature;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.security.core.Authentication;
+{% if project.security.enabled %}import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.stereotype.Component;
+{% endif %}import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
@@ -45,10 +45,11 @@ public class SystemLogAspect {
             String operation = annotation != null ? annotation.value() : method.getName();
 
             String username = "anonymous";
-            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+{% if project.security.enabled %}            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
             if (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getPrincipal())) {
                 username = auth.getName();
             }
+{% endif %}
 
             String requestUri = "";
             String ip = "";

@@ -45,7 +45,8 @@
    - `relations[].filters`
 4. 遇到权限相关问题时，记住 `security.enabled=true` 会暗注 5 张 RBAC 表，不要手动重复声明。
 5. 遇到“注册成功但没权限 / 管理员进不去接口”这类问题时，优先检查角色名是否被规范成 `ROLE_*`，以及 `init.sql` 中是否真的存在默认注册角色和权限映射。
-6. 修完后重新运行 `python -m codegen -c <config> -o <tmp>`，不要只看 schema 是否通过。
+6. 遇到多租户场景下登录、注册、字典查询直接 500 时，优先检查生成的 `MybatisPlusConfig` 是否忽略了系统表，而不是先怀疑数据库本身。
+7. 修完后重新运行 `python -m codegen -c <config> -o <tmp>`，不要只看 schema 是否通过。
 
 ## 生成并验收输出
 

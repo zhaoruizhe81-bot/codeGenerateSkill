@@ -9,7 +9,6 @@
   },
   "datasource": {
     "url": "jdbc:mysql://127.0.0.1:3306/preset_saas_multi_tenant?useSSL=false&serverTimezone=UTC",
-    "databaseName": "preset_saas_multi_tenant",
     "username": "root",
     "password": "root",
     "driverClassName": "com.mysql.cj.jdbc.Driver"
@@ -18,19 +17,12 @@
     "enabled": true,
     "jwt": {
       "secret": "my-super-secret-key-that-is-very-long-and-secure"
-    },
-    "rbac": {
-      "superAdminRole": "ADMIN"
     }
   },
   "frontend": {
     "enabled": true,
-    "framework": "vue2",
     "locale": "en-US",
-    "outputDir": "frontend",
-    "appTitle": "SaaS Admin",
-    "backendUrl": "http://127.0.0.1:8080",
-    "devPort": 8081
+    "appTitle": "SaaS Admin"
   },
   "dictionaries": [
     {
@@ -52,7 +44,7 @@
       "primaryKey": "id",
       "queryableFields": [
         {"name": "project_name", "operator": "LIKE"},
-        {"name": "status", "operator": "EQ"}
+        "status"
       ],
       "sortableFields": ["id", "project_name", "created_at"],
       "auth": {
@@ -65,8 +57,7 @@
         }
       },
       "frontend": {
-        "menuTitle": "Projects",
-        "menuIcon": "el-icon-office-building"
+        "menuTitle": "Projects"
       },
       "fields": [
         {"name": "id", "type": "bigint", "nullable": false, "idType": "AUTO", "comment": "ID"},

@@ -105,6 +105,7 @@ python -m codegen -c examples/sample_security.json -o /tmp/codegen-out
 ```
 开启后，解析器会自动隐式注入 `sys_user`、`sys_role`、`sys_user_role`、`sys_menu_permission`、`sys_role_permission` 5 张表，并补齐超级管理员角色、默认注册角色以及超级管理员所需的权限种子数据。配置里的角色名会统一规范成 `ROLE_*`，因此 `ADMIN` 和 `ROLE_ADMIN` 都可以写。
 如果 `defaultRoles` 没写，或者规范化后变成空列表，生成器会自动回退到 `ROLE_USER`，避免 `/register` 生成出“能注册但无角色”的账号。
+生成的 `init.sql` 还会内置一个可直接用于本地验证的 `admin / 123456` 账号。
 
 自动生成以下三个开箱即用的认证接口：
 
@@ -146,6 +147,7 @@ python -m codegen -c examples/sample_security.json -o /tmp/codegen-out
 }
 ```
 `auth.roles` 中既可以写 `ADMIN`、`MANAGER`，也可以写 `ROLE_ADMIN`、`ROLE_MANAGER`。生成器会统一规范，但最终 `@PreAuthorize` 仍保持 `hasAnyRole('ADMIN', ...)` 这种 Spring Security 约定写法。
+开启多租户后，生成的拦截器会自动忽略 RBAC 系统表、字典表以及 `sys_log`，避免认证链路和字典读取被错误追加 `tenant_id` 条件。
 
 ### 接口文档 (`global.enableSwagger`)
 

@@ -34,6 +34,7 @@
 
 - RBAC 角色名会在 parser 层统一规范成 `ROLE_*`，并同步影响 `init.sql`、注册默认角色、`@PreAuthorize` 与 `/me` 返回。
 - `global.enableSwagger = true` 时，除了依赖与 `SwaggerConfig`，还要检查生成的 `application.yml` 是否写入 `ant_path_matcher`，以及安全配置是否放行文档路径。
+- `global.tenant.enabled = true` 时，多租户拦截器必须忽略系统表；认证、字典、日志相关问题优先检查 `MybatisPlusConfig` 里的 `ignoreTable` 逻辑。
 
 ## 先做任务分流
 
