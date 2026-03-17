@@ -83,7 +83,7 @@ public class AuthController {
     }
 
     /**
-     * Register: create a new account with default ROLE_USER role.
+     * Register: create a new account with configured default roles.
      * The password is stored as a BCrypt hash; plain text is never persisted.
      */
     @PostMapping("/register")

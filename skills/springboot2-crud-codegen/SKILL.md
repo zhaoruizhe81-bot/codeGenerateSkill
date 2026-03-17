@@ -12,6 +12,8 @@ description: Work with the `springboot2-crud-codegen` repository to create or re
   - `references/task-playbook.md`：按任务类型拆好的执行步骤。
 - 始终保持主流程稳定：`load -> validate -> parse -> render -> write`。
 - 始终遵守项目边界：Java 8、Spring Boot 2.x、MySQL 导向 SQL、Vue 2 + Element UI、Python `unittest`。
+- 遇到 RBAC 相关任务时，默认要同时核对角色名规范化、`init.sql` 种子、`UserDetailsServiceImpl` 授权逻辑、`@PreAuthorize` 表达式。
+- 遇到 Swagger/Knife4j 相关任务时，默认要同时核对 `pom.xml`、`application.yml`、`WebSecurityConfig` 三处是否闭环。
 
 ## 默认执行流程
 
@@ -39,6 +41,7 @@ description: Work with the `springboot2-crud-codegen` repository to create or re
 - `codegen/cli.py`：命令行参数、退出码、用户可见错误、`--force/--no-force`
 - `codegen/schema.py`：JSON Schema 规则、必填项、枚举、额外字段限制、错误路径格式化
 - `codegen/parser.py`：语义校验、IR 构建、RBAC 系统表暗注、联表/排序/操作符规则
+- `codegen/parser.py`：也负责角色名规范化、默认注册角色兜底、RBAC 权限种子补齐
 - `codegen/ir.py`：解析层到渲染层的内部契约
 - `codegen/render.py`：后端/前端/SQL 文件渲染、导入、路径、代码片段拼装
 - `codegen/templates/`：Jinja 模板本体

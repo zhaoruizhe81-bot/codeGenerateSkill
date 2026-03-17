@@ -1,6 +1,11 @@
 spring:
   application:
     name: {{ project.artifact_id }}
+{% if project.enable_swagger %}
+  mvc:
+    pathmatch:
+      matching-strategy: ant_path_matcher
+{% endif %}
   datasource:
     url: "{{ datasource_placeholders.url }}"
     username: "{{ datasource_placeholders.username }}"

@@ -20,6 +20,10 @@
 4. 修改后立即运行：
    - `python -m codegen -c <config> -o /tmp/codegen-out`
 5. 再检查 `<output>/<artifactId>/backend/src/main/resources/init.sql` 和核心 Java 文件是否与配置一致。
+6. 如果改了 `security.rbac` 或 `global.enableSwagger`，额外检查：
+   - `init.sql` 是否补齐默认角色和权限种子
+   - `application.yml` 是否写入 `ant_path_matcher`
+   - `WebSecurityConfig.java` 是否放行文档路径
 
 ## 排查配置报错
 
@@ -35,7 +39,8 @@
    - `relations[].select`
    - `relations[].filters`
 4. 遇到权限相关问题时，记住 `security.enabled=true` 会暗注 5 张 RBAC 表，不要手动重复声明。
-5. 修完后重新运行 `python -m codegen -c <config> -o <tmp>`，不要只看 schema 是否通过。
+5. 遇到“注册成功但没权限 / 管理员进不去接口”这类问题时，优先检查角色名是否被规范成 `ROLE_*`，以及 `init.sql` 中是否真的存在默认注册角色和权限映射。
+6. 修完后重新运行 `python -m codegen -c <config> -o <tmp>`，不要只看 schema 是否通过。
 
 ## 生成并验收输出
 
@@ -52,11 +57,12 @@
    - `backend/src/main/java/.../service/*`
    - `backend/src/main/resources/mapper/*`
 4. 验收高级功能时重点看：
-   - 权限：`.../security/*` 与 `AuthController`
-   - 上传：`.../common/FileController.java`
-   - 日志：`SystemLog.java` 与 `SystemLogAspect.java`
-   - 仪表盘：`DashboardController.java`
-   - 单测：`backend/src/test/java/.../controller/*Test.java`
+  - 权限：`.../security/*` 与 `AuthController`
+  - 上传：`.../common/FileController.java`
+  - 日志：`SystemLog.java` 与 `SystemLogAspect.java`
+  - 仪表盘：`DashboardController.java`
+  - 单测：`backend/src/test/java/.../controller/*Test.java`
+   - Swagger：`application.yml`、`SwaggerConfig.java`、`WebSecurityConfig.java`
 5. 最后运行基础校验：
    - `python -m compileall codegen tests`
    - `python -m unittest discover -s tests -v`

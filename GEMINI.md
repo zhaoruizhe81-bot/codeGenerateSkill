@@ -57,12 +57,15 @@
 - **Pure Pipeline:** Keep `parser.py` and `render.py` mostly pure; isolate filesystem effects in `writer.py` and CLI boundaries.
 - **Validation First:** All configuration changes must be reflected in `codegen/schema.py` and validated in `codegen/parser.py`.
 - **Template Consistency:** When modifying generated Java structure, ensure template paths and imports in `render.py` remain synchronized.
+- **Security Consistency:** RBAC role names are normalized to `ROLE_*` in the parser. Keep config docs, seed data, `@PreAuthorize` expressions, and generated runtime authorities aligned.
+- **Swagger Compatibility:** If Swagger/Knife4j behavior changes, update both dependency/config generation and the generated security allowlist; Boot 2.6+ requires `ant_path_matcher`.
 
 ### Testing Practices
 - **Smoke Tests:** Use `examples/sample.json` for end-to-end verification.
 - **Parser Tests:** Add both success and failure cases for any new configuration rules.
 - **Renderer Tests:** Assert on specific snippets of generated file content or paths.
 - **Syntax Check:** Use `python -m compileall codegen tests` for a quick syntax gate.
+- **Security Regression Checks:** When touching RBAC or auth generation, assert on generated `init.sql`, `UserDetailsServiceImpl`, `WebSecurityConfig`, and auth-controller behavior together.
 
 ---
 

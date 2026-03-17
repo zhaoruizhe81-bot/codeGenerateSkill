@@ -53,7 +53,13 @@ class TableAuthIR:
 
     @property
     def roles_str(self) -> str:
-        return ", ".join(f"'{role}'" for role in self.roles)
+        rendered_roles = []
+        for role in self.roles:
+            if role.startswith("ROLE_"):
+                rendered_roles.append(role[5:])
+            else:
+                rendered_roles.append(role)
+        return ", ".join(f"'{role}'" for role in rendered_roles)
 
 
 @dataclass(slots=True)
@@ -68,7 +74,11 @@ class JwtConfigIR:
 class RbacConfigIR:
     strategy: str = "role_permission"
     super_admin_role: str = "ROLE_ADMIN"
-    default_roles: List[str] = field(default_factory=list)
+    default_roles: List[str] = field(default_factory=lambda: ["ROLE_USER"])
+
+    @property
+    def default_roles_java(self) -> str:
+        return ", ".join(f'"{role}"' for role in self.default_roles)
 
 
 @dataclass(slots=True)

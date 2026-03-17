@@ -19,6 +19,9 @@ class RendererTest(unittest.TestCase):
                 encoding="utf-8"
             )
         )
+        self.sample_security_payload = json.loads(
+            (root / "examples" / "sample_security.json").read_text(encoding="utf-8")
+        )
 
     def test_render_application_uses_env_placeholders(self) -> None:
         project = parse_config(self.sample_payload)
@@ -216,12 +219,7 @@ class RendererTest(unittest.TestCase):
         self.assertIn("return Result.error(400, \"File is empty\");", file_controller_java)
 
     def test_render_security_user_details_handles_integer_enabled_flag(self) -> None:
-        root = Path(__file__).resolve().parents[1]
-        payload = json.loads(
-            (root / "examples" / "sample_security.json").read_text(encoding="utf-8")
-        )
-
-        project = parse_config(payload)
+        project = parse_config(self.sample_security_payload)
         files = CodeRenderer().render_project(project)
 
         user_details = files[
@@ -231,7 +229,9 @@ class RendererTest(unittest.TestCase):
         self.assertIn("sysUser.getEnabled() != null && sysUser.getEnabled() != 0", user_details)
         self.assertIn("registerUser", user_details)
         self.assertIn("passwordEncoder.encode", user_details)
-        self.assertIn("ROLE_USER", user_details)
+        self.assertIn('DEFAULT_ROLE_CODES = Arrays.asList("ROLE_USER")', user_details)
+        self.assertIn('authority = "ROLE_" + authority;', user_details)
+        self.assertIn('Missing default registration role: ', user_details)
 
         auth_controller = files[
             "backend/src/main/java/com/example/admin/security/AuthController.java"
@@ -244,6 +244,32 @@ class RendererTest(unittest.TestCase):
             "backend/src/main/java/com/example/admin/security/WebSecurityConfig.java"
         ]
         self.assertIn("/auth/register", web_security)
+
+    def test_render_security_swagger_and_rbac_bootstrap_are_aligned(self) -> None:
+        payload = json.loads(json.dumps(self.sample_security_payload))
+        payload["global"]["enableSwagger"] = True
+
+        project = parse_config(payload)
+        files = CodeRenderer().render_project(project)
+
+        init_sql = files["backend/src/main/resources/init.sql"]
+        application_yml = files["backend/src/main/resources/application.yml"]
+        web_security = files[
+            "backend/src/main/java/com/example/admin/security/WebSecurityConfig.java"
+        ]
+        controller_java = files[
+            "backend/src/main/java/com/example/admin/controller/ProductController.java"
+        ]
+        pom_xml = files["backend/pom.xml"]
+
+        self.assertIn("matching-strategy: ant_path_matcher", application_yml)
+        self.assertIn('"/doc.html"', web_security)
+        self.assertIn('"/v2/api-docs"', web_security)
+        self.assertIn("knife4j-spring-boot-starter", pom_xml)
+        self.assertIn("hasAnyRole('ADMIN', 'MANAGER')", controller_java)
+        self.assertIn("'ROLE_ADMIN'", init_sql)
+        self.assertIn("'ROLE_USER'", init_sql)
+        self.assertIn("'product:force_delete'", init_sql)
 
     def test_render_vue2_frontend_project(self) -> None:
         payload = json.loads(json.dumps(self.sample_payload))

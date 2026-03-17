@@ -30,6 +30,11 @@
 - MockMvc 单元测试
 - 带表单校验的 Vue 2 管理前端
 
+当前仓库里有两条容易踩坑的默认约束，排查时要优先想到：
+
+- RBAC 角色名会在 parser 层统一规范成 `ROLE_*`，并同步影响 `init.sql`、注册默认角色、`@PreAuthorize` 与 `/me` 返回。
+- `global.enableSwagger = true` 时，除了依赖与 `SwaggerConfig`，还要检查生成的 `application.yml` 是否写入 `ant_path_matcher`，以及安全配置是否放行文档路径。
+
 ## 先做任务分流
 
 - 用户要“写配置 / 改配置”：先从示例配置开始，再读 `references/config-guide.md`
@@ -111,6 +116,12 @@
 - `frontend/src/views/<xxx>/index.vue`
 - `frontend/src/utils/request.js`
 
+权限或文档相关问题优先额外检查：
+
+- `backend/src/main/java/<basePackage>/security/UserDetailsServiceImpl.java`
+- `backend/src/main/java/<basePackage>/security/WebSecurityConfig.java`
+- `backend/src/main/java/<basePackage>/config/SwaggerConfig.java`
+
 ## 项目边界
 
 - 仅支持 Java 8
@@ -126,3 +137,4 @@
 - 改生成结构时，保证导入、路径、命名稳定且可重复生成
 - 改 parser 或 render 行为时，优先补针对性的成功/失败测试
 - 改模板时，同时检查对应的 `render.py` 分支和输出路径
+- 改 RBAC 或 Swagger 行为时，同时更新仓库里的 Markdown 文档，避免 README、技能参考和代理说明出现旧规则

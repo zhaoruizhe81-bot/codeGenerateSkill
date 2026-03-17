@@ -131,6 +131,9 @@ This file is for coding agents working in this repository.
 - Generated mappers, DTOs, services, controllers, and resources follow existing folder conventions.
 - Keep import generation deterministic; `render.py` currently sorts Java imports.
 - Preserve stable output when input order is unchanged.
+- Security role config is normalized to `ROLE_*` during parsing; config may accept either `ADMIN` or `ROLE_ADMIN`, but generated runtime behavior must stay consistent with Spring Security role semantics.
+- When `security.enabled = true`, default registration roles must be reflected consistently across parser seed data, generated `init.sql`, and `UserDetailsServiceImpl`.
+- When `global.enableSwagger = true`, generated `application.yml` and security config must include the Spring Boot 2.6+ compatibility and docs-endpoint allowlist needed for Knife4j/Springfox startup and access.
 
 ## Testing Guidance For Changes
 
@@ -153,3 +156,4 @@ This file is for coding agents working in this repository.
 - Verify command examples against `examples/sample.json` whenever possible.
 - Keep edits small and localized.
 - If you add new conventions, document them here so the next agent inherits them.
+- For RBAC fixes, verify both generated Java and generated `init.sql`; seed data mismatches are a common source of “generation succeeds but runtime is broken”.

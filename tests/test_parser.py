@@ -18,6 +18,9 @@ class ParserTest(unittest.TestCase):
                 encoding="utf-8"
             )
         )
+        self.sample_security_payload = json.loads(
+            (root / "examples" / "sample_security.json").read_text(encoding="utf-8")
+        )
 
     def test_like_on_non_string_should_fail(self) -> None:
         broken = json.loads(json.dumps(self.sample_payload))
@@ -158,6 +161,40 @@ class ParserTest(unittest.TestCase):
 
         with self.assertRaises(ConfigError):
             parse_config(payload)
+
+    def test_parse_security_normalizes_roles_and_seeds_defaults(self) -> None:
+        payload = json.loads(json.dumps(self.sample_security_payload))
+        payload["security"]["rbac"]["defaultRoles"] = ["user", "AUDITOR", "ROLE_USER"]
+
+        project = parse_config(payload)
+
+        self.assertEqual(project.security.rbac.super_admin_role, "ROLE_ADMIN")
+        self.assertEqual(
+            project.security.rbac.default_roles,
+            ["ROLE_USER", "ROLE_AUDITOR"],
+        )
+
+        products_table = next(item for item in project.tables if item.name == "products")
+        self.assertEqual(products_table.auth.roles, ["ROLE_ADMIN", "ROLE_MANAGER"])
+
+        sys_role_table = next(item for item in project.tables if item.name == "sys_role")
+        role_codes = [row["role_code"] for row in sys_role_table.seed_data]
+        self.assertEqual(role_codes, ["ROLE_ADMIN", "ROLE_USER", "ROLE_AUDITOR"])
+
+        sys_permission_table = next(
+            item for item in project.tables if item.name == "sys_menu_permission"
+        )
+        permission_codes = [
+            row["permission_str"]
+            for row in sys_permission_table.seed_data
+            if row.get("permission_str")
+        ]
+        self.assertIn("product:force_delete", permission_codes)
+
+        sys_role_permission_table = next(
+            item for item in project.tables if item.name == "sys_role_permission"
+        )
+        self.assertGreater(len(sys_role_permission_table.seed_data), 0)
 
 
 if __name__ == "__main__":

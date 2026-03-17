@@ -57,20 +57,27 @@
   },
   "rbac": {
     "strategy": "role_permission",
-    "superAdminRole": "ROLE_ADMIN"
+    "superAdminRole": "ROLE_ADMIN",
+    "defaultRoles": ["ROLE_USER"]
   }
 }
 ```
 **行为说明**：
 - 一旦 `enabled: true`，生成的项目 `pom.xml` 自动引入 Security 和 JJWT。
 - 自动生成 `WebSecurityConfig`、`JwtTokenUtil`、`AuthController` 等核心类。
+- 配置里的角色名会被统一规范成 `ROLE_*`；因此 `ADMIN`、`admin`、`ROLE_ADMIN` 最终都会按 `ROLE_ADMIN` 处理。
 - 生成四个开箱即用的认证接口：
   - `POST /api/auth/login` — 验证账密，返回 JWT Token
-  - `POST /api/auth/register` — 注册新账号（BCrypt 加密密码，默认授予 `ROLE_USER` 角色）
+  - `POST /api/auth/register` — 注册新账号（BCrypt 加密密码，自动绑定 `rbac.defaultRoles` 中的角色；未配置时默认 `ROLE_USER`）
   - `GET /api/auth/me` — 凭 Token 返回当前用户名 + 角色 + 权限列表（便于前端渲染菜单权限）
   - `POST /api/auth/change-password` — 先 BCrypt 校验旧密码，再加密存储新密码
 - Parser 会隐式生成 `sys_user`, `sys_role`, `sys_user_role`, `sys_menu_permission`, `sys_role_permission` 这 5 张表的 Entity, Mapper, Service, Controller。
 - 默认在 `init.sql` 里塞入账号 `admin` / 密码 `123456`（经过 BCrypt 加密）的数据。
+- `init.sql` 还会自动补齐：
+  - 超级管理员角色
+  - 默认注册角色
+  - 业务表和联表自动生成的权限点
+  - 超级管理员角色到这些权限点的映射
 
 ### 表级/关联级的 `auth`
 ```json
@@ -92,6 +99,7 @@
 ```
 **行为说明**：
 - 如果没有写 `auth.permissions`，Parser 会自动按 `<table_name>:view` 这类规则兜底补全。
+- `roles` 中可以写 `ADMIN` 或 `ROLE_ADMIN`，最终都会按同一套角色语义处理。
 - 生成 Controller 时，会拼接为：`@PreAuthorize("hasAnyRole('ADMIN', 'MANAGER') or hasAuthority('product:add')")`。
 
 ## 全局功能特性 (Global Features)
@@ -131,7 +139,9 @@
 **行为说明**：
 - 当 `enableSwagger: true` 时，生成的后端 `pom.xml` 中将自动注入 `@github.xiaoymin:knife4j-spring-boot-starter` 依赖。
 - 生成一个支持分组的全局 `SwaggerConfig.java` 配置文件。
-- 自动分析所有表(`table.comment`)及字段(`field.comment`)信息，利用 `@Api`、`@ApiOperation`、`@ApiModel`、`@ApiModelProperty` 等注解在生成的 Controller、Entities 以及 DTO 类上提供清晰友好的文档注释。启动后可访问 `/doc.html` 查看。
+- 自动分析所有表(`table.comment`)及字段(`field.comment`)信息，利用 `@Api`、`@ApiOperation`、`@ApiModel`、`@ApiModelProperty` 等注解在生成的 Controller、Entities 以及 DTO 类上提供清晰友好的文档注释。
+- 生成的 `application.yml` 会自动写入 `spring.mvc.pathmatch.matching-strategy: ant_path_matcher`，用于 Spring Boot 2.6+ 与 Springfox/Knife4j 的兼容。
+- 生成的 `WebSecurityConfig` 会自动放行 `/doc.html`、`/swagger-ui/**`、`/swagger-resources/**`、`/v2/api-docs`、`/webjars/**` 等文档路径。启动后可访问 `/doc.html` 查看。
 
 ## 后端与其他配置
 

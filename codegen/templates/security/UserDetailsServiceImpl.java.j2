@@ -23,11 +23,15 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
 public class UserDetailsServiceImpl implements UserDetailsService {
+
+    private static final List<String> DEFAULT_ROLE_CODES = Arrays.asList({{ project.security.rbac.default_roles_java }});
 
     private final SysUserMapper sysUserMapper;
     private final SysRoleMapper sysRoleMapper;
@@ -67,7 +71,13 @@ public class UserDetailsServiceImpl implements UserDetailsService {
         if (!roleIds.isEmpty()) {
             List<SysRole> roles = sysRoleMapper.selectBatchIds(roleIds);
             for (SysRole role : roles) {
-                authorities.add(new SimpleGrantedAuthority(role.getRoleCode()));
+                String authority = role.getRoleCode();
+                if (authority != null && !authority.isEmpty()) {
+                    if (!authority.startsWith("ROLE_")) {
+                        authority = "ROLE_" + authority;
+                    }
+                    authorities.add(new SimpleGrantedAuthority(authority));
+                }
             }
 
             // Load permissions
@@ -96,7 +106,7 @@ public class UserDetailsServiceImpl implements UserDetailsService {
     }
 
     /**
-     * Register a new user with an encoded password and default ROLE_USER.
+     * Register a new user with an encoded password and configured default roles.
      *
      * @param username the desired username
      * @param rawPassword the plain-text password (will be BCrypt-hashed)
@@ -117,13 +127,19 @@ public class UserDetailsServiceImpl implements UserDetailsService {
         newUser.setEnabled(1);
         sysUserMapper.insert(newUser);
 
-        // Assign the default ROLE_USER role (role_code = 'ROLE_USER')
-        SysRole defaultRole = sysRoleMapper.selectOne(
-                new QueryWrapper<SysRole>().eq("role_code", "ROLE_USER"));
-        if (defaultRole != null) {
+        // Assign all configured default roles. Missing role seeds should fail loudly.
+        List<SysRole> defaultRoles = sysRoleMapper.selectList(
+                new QueryWrapper<SysRole>().in("role_code", DEFAULT_ROLE_CODES));
+        Map<String, Long> defaultRoleIds = defaultRoles.stream()
+                .collect(Collectors.toMap(SysRole::getRoleCode, SysRole::getId));
+        for (String roleCode : DEFAULT_ROLE_CODES) {
+            Long roleId = defaultRoleIds.get(roleCode);
+            if (roleId == null) {
+                throw new IllegalStateException("Missing default registration role: " + roleCode);
+            }
             SysUserRole userRole = new SysUserRole();
             userRole.setUserId(newUser.getId());
-            userRole.setRoleId(defaultRole.getId());
+            userRole.setRoleId(roleId);
             sysUserRoleMapper.insert(userRole);
         }
 
