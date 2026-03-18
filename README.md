@@ -29,11 +29,12 @@ It is designed for fast scaffolding of admin-style backends and goes beyond simp
 - `DELETE /batch` batch delete endpoint for every table
 - `GET /dashboard/stats` aggregating totalCount + todayCount across all tables
 - Optional standalone Vue 2 + Element UI admin frontend (with login page, Axios interceptors, and auto-generated form validation)
+- Security-enabled frontend shells that fetch `/auth/me` and apply role/permission-based route guards, sidebar filtering, dashboard quick-link filtering, and create/edit/delete button visibility
 
 ## Supported Features
 
 - **Query & Relations**: `EQ`, `NE`, `LIKE`, `GT`, `GE`, `LT`, `LE` operators for tables and left/inner joins.
-- **Security**: Built-in JWT generation/validation, `@PreAuthorize` method security, automatic injection of 5 standard RBAC tables, normalized role-code handling (`ADMIN` and `ROLE_ADMIN` are treated consistently), seeded default registration roles, and **fully functional `/register` (BCrypt-hashed), `/login`, and `/me` (roles + permissions)** auth endpoints.
+- **Security**: Built-in JWT generation/validation, `@PreAuthorize` method security, automatic injection of 5 standard RBAC tables, normalized role-code handling (`ADMIN` and `ROLE_ADMIN` are treated consistently), seeded default registration roles, fully functional `/register` (BCrypt-hashed), `/login`, and `/me` (roles + permissions) auth endpoints, and generated Vue 2 permission filtering that consumes `/me` for routes, menus, dashboard links, and CRUD buttons.
 - **Multi-tenancy**: Request-level tenant isolation using `TenantLineInnerInterceptor` and `X-Tenant-Id` or JWT claims.
 - **Data Export**: Built-in Alibaba EasyExcel integration generating `XxxExportDto` and `/export` APIs.
 - **File Upload**: Native multipart file upload to local directories with Vue `el-upload` integration.
@@ -47,6 +48,8 @@ It is designed for fast scaffolding of admin-style backends and goes beyond simp
 - **Batch Delete**: `DELETE /batch` endpoint accepting a list of IDs for every table.
 - **Dashboard Statistics**: `GET /dashboard/stats` returning `totalCount` and `todayCount` (based on `created_at`) for every business table.
 - **Frontend Generation**: Vue 2 admin with dynamic routing, dictionary lookups, `image-upload` components, and locale switching (`zh-CN` / `en-US`).
+- **Frontend RBAC UX**: When both `security.enabled` and `frontend.enabled` are true, the generated frontend stores the JWT, fetches `/auth/me`, caches the current user, and uses the same role/permission rules as the backend to filter visible pages and actions. Backend authorization still remains the final source of truth.
+- **Permission Polish**: Generated login pages preserve the original redirect target after authentication, and generated `POST /import` endpoints now reuse the same create-level RBAC rule as the corresponding table.
 
 ## Install
 
@@ -118,6 +121,15 @@ Three ready-to-use auth endpoints are generated automatically:
 | `/api/auth/login` | POST | ✗ | Returns a signed JWT token |
 | `/api/auth/register` | POST | ✗ | Creates account with BCrypt password + configured default roles |
 | `/api/auth/me` | GET | ✓ | Returns username, roles list, and permissions list |
+
+When `frontend.enabled` is also true, the generated Vue 2 frontend calls `/api/auth/me` after login and on protected navigation. The returned `roles` and `permissions` are used for:
+
+- route access control
+- sidebar/menu filtering
+- dashboard quick-navigation filtering
+- create/edit/delete button visibility on generated CRUD pages
+
+The backend still enforces `@PreAuthorize(...)`; frontend filtering only improves UX and keeps the shell aligned with backend rules.
 
 You can protect your tables by adding the `auth` object:
 

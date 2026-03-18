@@ -28,11 +28,12 @@
 - 每张业务表自动生成 `DELETE /batch` 批量删除接口
 - `GET /dashboard/stats` 仪表盘统计接口（自动汇总所有表的总数 + 今日新增数）
 - 包含登录页、Axios 拦截器、上传组件、以及智能表单校验的独立 Vue2 + Element UI 管理前端
+- 开启安全后可基于 `/auth/me` 自动做路由守卫、侧边菜单过滤、仪表盘快捷入口过滤和增删改按钮显隐的前端权限壳
 
 ## 当前支持的能力
 
 - **查询与关联**：单表与 Left/Inner Join 支持 `EQ`、`NE`、`LIKE`、`GT`、`GE`、`LT`、`LE`。
-- **安全管控**：内置 JWT 生成与校验，接口生成 `@PreAuthorize` 注解，自动暗注 5 张标准 RBAC 权限表，统一处理 `ADMIN` / `ROLE_ADMIN` 两种角色写法，并自动生成 **`/register`（BCrypt 加密注册并绑定默认角色）、`/login`（登录）、`/me`（返回当前用户角色 + 权限列表）** 三个开箱即用的完整鉴权接口。
+- **安全管控**：内置 JWT 生成与校验，接口生成 `@PreAuthorize` 注解，自动暗注 5 张标准 RBAC 权限表，统一处理 `ADMIN` / `ROLE_ADMIN` 两种角色写法，并自动生成 **`/register`（BCrypt 加密注册并绑定默认角色）、`/login`（登录）、`/me`（返回当前用户角色 + 权限列表）** 三个开箱即用的完整鉴权接口；当前端同时启用时，还会自动消费 `/me` 做路由、菜单、快捷入口和 CRUD 按钮的权限过滤。
 - **多租户**：基于请求头 `X-Tenant-Id` 或 JWT Claim 实现请求级别的租户上下文绑定与数据隔离。
 - **数据导出**：自动生成 `XxxExportDto` (带 `@ExcelProperty` 注解) 并利用 EasyExcel 写入响应流。
 - **Excel 批量导入**：每张表自动生成 `POST /import` 接口，使用 EasyExcel 读取上传的表格并批量插入数据库。
@@ -43,6 +44,8 @@
 - **接口文档**: 根据表和字段注释自动整合 Swagger/Knife4j，自动生成完整的 `@Api`、`@ApiModelProperty` 等注解，并内置 Spring Boot 2.6+ 的 `ant_path_matcher` 兼容配置和文档路径放行。
 - **前端表单校验**: 根据字段是否必填以及数据库预设长度，自动在前端 Vue 页面中挂载含有 `:rules` 和 `maxlength` 的校验拦截逻辑。
 - **前端生成**：动态路由、字典翻译、国际化切换 (`zh-CN` / `en-US`) 的全功能后台页面。
+- **前端权限体验**：当 `security.enabled=true` 且 `frontend.enabled=true` 时，生成的 Vue2 前端会缓存当前登录用户信息，并使用与后端同一套角色/权限规则做页面与按钮过滤；真正的最终鉴权仍以后端 `@PreAuthorize` 为准。
+- **权限细节优化**：登录页会在认证成功后回跳到原始目标地址，且每张表自动生成的 `POST /import` 现在会复用与 `create` 相同的 RBAC 规则。
 
 ## 安装
 
@@ -114,6 +117,15 @@ python -m codegen -c examples/sample_security.json -o /tmp/codegen-out
 | `/api/auth/login` | POST | 否 | 返回已签名的 JWT Token |
 | `/api/auth/register` | POST | 否 | 创建账号，密码 BCrypt 加密，并自动绑定配置的默认注册角色 |
 | `/api/auth/me` | GET | 是 | 返回当前用户名、角色列表以及按钮权限列表 |
+
+如果同时开启了 `frontend.enabled`，生成出来的 Vue2 前端会在登录后和受保护路由跳转时主动调用 `/api/auth/me`，并把返回的 `roles` / `permissions` 用在：
+
+- 页面路由访问控制
+- 侧边菜单过滤
+- 仪表盘快捷导航过滤
+- CRUD 页面新增/编辑/删除按钮显隐
+
+这样前端壳会和后端权限保持一致，但最终安全边界仍然后端接口本身负责。
 
 你可以在具体业务表中配置 `auth` 来生成控制权限：
 

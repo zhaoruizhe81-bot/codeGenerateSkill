@@ -1,8 +1,5 @@
 import axios from "axios"
 import { Message } from "element-ui"
-{% if project.security.enabled %}
-import router from '@/router'
-{% endif %}
 
 const service = axios.create({
   baseURL: process.env.VUE_APP_BASE_API || "{{ project.api_prefix }}",
@@ -39,8 +36,15 @@ service.interceptors.response.use(
 {% if project.security.enabled %}
     if (error.response && error.response.status === 401) {
       localStorage.removeItem('{{ project.artifact_id }}_token')
-      router.push('/login')
-      Message.error("Session expired, please login again")
+      localStorage.removeItem('{{ project.artifact_id }}_current_user')
+      if (window.location.hash !== "#/login") {
+        window.location.hash = "#/login"
+      }
+      Message.error("{{ messages.request_session_expired }}")
+      return Promise.reject(error)
+    }
+    if (error.response && error.response.status === 403) {
+      Message.error("{{ messages.request_forbidden }}")
       return Promise.reject(error)
     }
 {% endif %}

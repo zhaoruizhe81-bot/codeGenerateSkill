@@ -1,0 +1,8 @@
+import request from "@/utils/request"
+
+export function fetchAuthMe() {
+  return request({
+    url: "/auth/me",
+    method: "get"
+  })
+}

@@ -285,9 +285,59 @@ class RendererTest(unittest.TestCase):
         self.assertIn('"/v2/api-docs"', web_security)
         self.assertIn("knife4j-spring-boot-starter", pom_xml)
         self.assertIn("hasAnyRole('ADMIN', 'MANAGER')", controller_java)
+        self.assertIn('@PostMapping("/import")', controller_java)
+        self.assertEqual(controller_java.count("@PreAuthorize(\"hasAnyRole('ADMIN', 'MANAGER')\")"), 6)
         self.assertIn("'ROLE_ADMIN'", init_sql)
         self.assertIn("'ROLE_USER'", init_sql)
         self.assertIn("'product:force_delete'", init_sql)
+
+    def test_render_security_frontend_uses_me_for_route_menu_and_button_permissions(
+        self,
+    ) -> None:
+        payload = json.loads(json.dumps(self.sample_security_payload))
+        payload["frontend"] = {
+            "enabled": True,
+            "framework": "vue2",
+            "locale": "en-US",
+            "outputDir": "frontend",
+            "appTitle": "Secure Admin",
+            "backendUrl": "http://127.0.0.1:8080",
+            "devPort": 8081,
+        }
+
+        project = parse_config(payload)
+        files = CodeRenderer().render_project(project)
+
+        router_js = files["frontend/src/router/index.js"]
+        layout_vue = files["frontend/src/layout/Layout.vue"]
+        dashboard_vue = files["frontend/src/views/dashboard/index.vue"]
+        request_js = files["frontend/src/utils/request.js"]
+        auth_api = files["frontend/src/api/auth.js"]
+        auth_util = files["frontend/src/utils/auth.js"]
+        login_vue = files["frontend/src/views/login/index.vue"]
+        products_view = files["frontend/src/views/products/index.vue"]
+
+        self.assertIn("ensureCurrentUser", router_js)
+        self.assertIn('"roles": ["ROLE_ADMIN", "ROLE_MANAGER"]', router_js)
+        self.assertIn('"permissions": ["product:force_delete"]', products_view)
+        self.assertIn("findFirstAccessiblePath", router_js)
+        self.assertIn("filteredMenuGroups", layout_vue)
+        self.assertIn("hasAccess(item.auth)", layout_vue)
+        self.assertIn("visibleQuickLinks", dashboard_vue)
+        self.assertIn("hasAccess(page.route_auth)", dashboard_vue)
+        self.assertIn("fetchAuthMe", auth_api)
+        self.assertIn("ensureCurrentUser", auth_util)
+        self.assertIn("hasAccess(rule, currentUser = getCurrentUser())", auth_util)
+        self.assertIn("window.location.hash = \"#/login\"", request_js)
+        self.assertIn("setToken(token)", login_vue)
+        self.assertIn("const redirectPath = this.$route.query.redirect || '/'", login_vue)
+        self.assertIn("Secure Admin Login", login_vue)
+        self.assertIn("const actionAuth =", products_view)
+        self.assertIn("v-if=\"canCreate\"", products_view)
+        self.assertIn("v-if=\"canUpdate\"", products_view)
+        self.assertIn("v-if=\"canDelete\"", products_view)
+        self.assertIn("v-if=\"canSave\"", products_view)
+        self.assertIn("this.$message.error(\"You do not have permission to perform this action\")", products_view)
 
     def test_render_dictionaries_generate_backend_frontend_and_excel_mapping(self) -> None:
         payload = json.loads(json.dumps(self.sample_payload))
@@ -522,10 +572,11 @@ class RendererTest(unittest.TestCase):
         self.assertIn('Vue.use(ElementUI, { size: "small", locale })', main_js)
         self.assertIn('<html lang="zh-CN">', public_html)
         self.assertIn("此页面需要启用 JavaScript 才能运行。", public_html)
-        self.assertIn('meta: { title: "仪表盘" }', router_js)
+        self.assertIn('meta: { title: "仪表盘", auth: { enabled: false, roles: [], permissions: [] } }', router_js)
         self.assertIn("仪表盘", layout_vue)
-        self.assertIn("数据管理", layout_vue)
-        self.assertIn("关联视图", layout_vue)
+        self.assertIn("filteredMenuGroups", layout_vue)
+        self.assertIn('"title": "\\u6570\\u636e\\u7ba1\\u7406"', layout_vue)
+        self.assertIn('"title": "\\u5173\\u8054\\u89c6\\u56fe"', layout_vue)
         self.assertIn("Vue2 管理工作台", layout_vue)
         self.assertIn("快速导航", dashboard_vue)
         self.assertIn("打开已生成的数据模块与关联查询页面。", dashboard_vue)

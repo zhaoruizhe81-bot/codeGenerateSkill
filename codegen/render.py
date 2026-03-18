@@ -16,6 +16,7 @@ from .ir import (
     RelationFilterIR,
     RelationIR,
     SortableFieldIR,
+    TableAuthIR,
     TableIR,
 )
 from .type_mapping import db_type_length, java_import, snake_to_camel, snake_to_pascal
@@ -80,6 +81,9 @@ FRONTEND_MESSAGES = {
         "request_empty_response": "服务端返回了空响应",
         "request_failed": "请求失败",
         "request_network_failed": "网络请求失败",
+        "request_session_expired": "登录状态已失效，请重新登录",
+        "request_forbidden": "当前账号无权执行此操作",
+        "route_forbidden": "当前账号无权访问该页面",
         "no_script": "此页面需要启用 JavaScript 才能运行。",
         "untitled": "未命名",
     },
@@ -131,6 +135,9 @@ FRONTEND_MESSAGES = {
         "request_empty_response": "Empty response received",
         "request_failed": "Request failed",
         "request_network_failed": "Network request failed",
+        "request_session_expired": "Session expired, please login again",
+        "request_forbidden": "You do not have permission to perform this action",
+        "route_forbidden": "You do not have permission to access this page",
         "no_script": "This frontend requires JavaScript to run.",
         "untitled": "Untitled",
     },
@@ -642,6 +649,15 @@ class CodeRenderer:
             "messages": messages,
             "table_pages": table_pages,
             "relation_pages": relation_pages,
+            "dashboard_links": [
+                {
+                    "route_path": str(page["route_path"]),
+                    "title": str(page["title"]),
+                    "menu_visible": bool(page["menu_visible"]),
+                    "route_auth": page["route_auth"],
+                }
+                for page in table_pages + relation_pages
+            ],
             "menu_groups": self._frontend_menu_groups(
                 locale,
                 table_pages,
@@ -683,6 +699,13 @@ class CodeRenderer:
             )
             shared_files[f"{frontend_root}/src/utils/dictionary.js"] = (
                 "frontend/src/utils/dictionary.js.j2"
+            )
+        if project.security.enabled:
+            shared_files[f"{frontend_root}/src/api/auth.js"] = (
+                "frontend/src/api/auth.js.j2"
+            )
+            shared_files[f"{frontend_root}/src/utils/auth.js"] = (
+                "frontend/src/utils/auth.js.j2"
             )
         for file_path, template_name in shared_files.items():
             files[file_path] = self._render(template_name, **frontend_context)
@@ -733,6 +756,7 @@ class CodeRenderer:
                         "path": str(page["route_path"]),
                         "title": str(page["title"]),
                         "icon": str(page["menu_icon"]),
+                        "auth": page["route_auth"],
                     }
                     for page in table_pages
                     if bool(page["menu_visible"])
@@ -749,6 +773,7 @@ class CodeRenderer:
                             "path": str(page["route_path"]),
                             "title": str(page["title"]),
                             "icon": str(page["menu_icon"]),
+                            "auth": page["route_auth"],
                         }
                         for page in relation_pages
                         if bool(page["menu_visible"])
@@ -834,6 +859,24 @@ class CodeRenderer:
             "route_name": f"{table.entity_name}Index",
             "menu_icon": table.frontend.menu_icon,
             "menu_visible": table.frontend.menu_visible,
+            "route_auth": self._frontend_access_rule(
+                table.auth,
+                table.auth.permissions.query if table.auth else None,
+            ),
+            "action_auth": {
+                "create": self._frontend_access_rule(
+                    table.auth,
+                    table.auth.permissions.create if table.auth else None,
+                ),
+                "update": self._frontend_access_rule(
+                    table.auth,
+                    table.auth.permissions.update if table.auth else None,
+                ),
+                "delete": self._frontend_access_rule(
+                    table.auth,
+                    table.auth.permissions.delete if table.auth else None,
+                ),
+            },
             "api_base": f"/{table.resource_name}",
             "api_function_names": {
                 "fetch_page": f"fetch{resource_pascal}Page",
@@ -926,6 +969,10 @@ class CodeRenderer:
             "route_name": f"{snake_to_pascal(relation.name)}RelationIndex",
             "menu_icon": relation.frontend.menu_icon,
             "menu_visible": relation.frontend.menu_visible,
+            "route_auth": self._frontend_access_rule(
+                relation.auth,
+                relation.auth.permissions.query if relation.auth else None,
+            ),
             "api_import_file": left_table.resource_name,
             "api_function_name": f"fetch{relation.method_name[:1].upper()}{relation.method_name[1:]}",
             "query_fields": query_fields,
@@ -1089,6 +1136,27 @@ class CodeRenderer:
             or str(field.comment)
             or self._frontend_title(locale, fallback_name, fallback_name)
         )
+
+    def _frontend_access_rule(
+        self,
+        auth: TableAuthIR | None,
+        permission: str | None = None,
+    ) -> Dict[str, object]:
+        if auth is None or not auth.enabled:
+            return {"enabled": False, "roles": [], "permissions": []}
+        return {
+            "enabled": True,
+            "roles": list(auth.roles),
+            "permissions": self._frontend_permission_list(permission),
+        }
+
+    def _frontend_permission_list(self, permission: str | None) -> List[str]:
+        if permission is None:
+            return []
+        rendered_permission = str(permission).strip()
+        if not rendered_permission:
+            return []
+        return [rendered_permission]
 
     def _frontend_widget(
         self,

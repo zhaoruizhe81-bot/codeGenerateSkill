@@ -13,6 +13,8 @@ description: Work with the `springboot2-crud-codegen` repository to create or re
 - 始终保持主流程稳定：`load -> validate -> parse -> render -> write`。
 - 始终遵守项目边界：Java 8、Spring Boot 2.x、MySQL 导向 SQL、Vue 2 + Element UI、Python `unittest`。
 - 遇到 RBAC 相关任务时，默认要同时核对角色名规范化、`init.sql` 种子、`UserDetailsServiceImpl` 授权逻辑、`@PreAuthorize` 表达式。
+- 遇到“前端不同角色显示一样”这类 RBAC 任务时，默认还要核对 `/auth/me`、`frontend/src/utils/auth.js`、`router`、`Layout`、`dashboard` 和 CRUD 页按钮显隐是否闭环。
+- 如果任务继续延伸到“权限再优化”，默认还要核对 `POST /import` 是否沿用 create 权限，以及登录后是否能回跳原始目标地址。
 - 遇到 Swagger/Knife4j 相关任务时，默认要同时核对 `pom.xml`、`application.yml`、`WebSecurityConfig` 三处是否闭环。
 
 ## 默认执行流程

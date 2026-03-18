@@ -33,6 +33,8 @@
 当前仓库里有两条容易踩坑的默认约束，排查时要优先想到：
 
 - RBAC 角色名会在 parser 层统一规范成 `ROLE_*`，并同步影响 `init.sql`、注册默认角色、`@PreAuthorize` 与 `/me` 返回。
+- 当前端启用且安全开启时，前端不会只看 token；还必须消费 `/auth/me`，并把角色/权限同时用在路由守卫、菜单、仪表盘入口和 CRUD 按钮显隐上。
+- CRUD 周边动作也要闭环：`POST /import` 应与 create 权限一致，登录页成功后应尽量回跳到原始受保护地址。
 - `global.enableSwagger = true` 时，除了依赖与 `SwaggerConfig`，还要检查生成的 `application.yml` 是否写入 `ant_path_matcher`，以及安全配置是否放行文档路径。
 - `global.tenant.enabled = true` 时，多租户拦截器必须忽略系统表；认证、字典、日志相关问题优先检查 `MybatisPlusConfig` 里的 `ignoreTable` 逻辑。
 
@@ -121,12 +123,20 @@
 - `frontend/src/views/login/index.vue`
 - `frontend/src/views/<xxx>/index.vue`
 - `frontend/src/utils/request.js`
+- `frontend/src/api/auth.js`
+- `frontend/src/utils/auth.js`
+- `frontend/src/router/index.js`
+- `frontend/src/layout/Layout.vue`
 
 权限或文档相关问题优先额外检查：
 
 - `backend/src/main/java/<basePackage>/security/UserDetailsServiceImpl.java`
 - `backend/src/main/java/<basePackage>/security/WebSecurityConfig.java`
 - `backend/src/main/java/<basePackage>/config/SwaggerConfig.java`
+- `frontend/src/api/auth.js`
+- `frontend/src/utils/auth.js`
+- `frontend/src/router/index.js`
+- `frontend/src/layout/Layout.vue`
 
 ## 项目边界
 
@@ -144,3 +154,4 @@
 - 改 parser 或 render 行为时，优先补针对性的成功/失败测试
 - 改模板时，同时检查对应的 `render.py` 分支和输出路径
 - 改 RBAC 或 Swagger 行为时，同时更新仓库里的 Markdown 文档，避免 README、技能参考和代理说明出现旧规则
+- 改前端权限行为时，同时更新仓库里的 Markdown 文档，避免 README、技能参考和代理说明继续描述“前端只看 token、不分角色”的旧行为

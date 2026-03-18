@@ -160,6 +160,9 @@ import java.util.stream.Collectors;
     }
 {% endfor %}
 
+{% if table.auth and table.auth.enabled %}
+    @PreAuthorize("{% if table.auth.roles %}hasAnyRole({{ table.auth.roles_str }}){% endif %}{% if table.auth.roles and table.auth.permissions.create %} or {% endif %}{% if table.auth.permissions.create %}hasAuthority('{{ table.auth.permissions.create }}'){% endif %}")
+{% endif %}
     @PostMapping("/import")
 {% if project.enable_swagger %}    @ApiOperation(value = "Batch import {{ table.entity_name }} from Excel")
 {% endif %}    @SystemLog("Batch import {{ table.comment|default(table.entity_name) }}")

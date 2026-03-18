@@ -1,0 +1,131 @@
+import { fetchAuthMe } from "@/api/auth"
+
+const TOKEN_KEY = "{{ project.artifact_id }}_token"
+const USER_KEY = "{{ project.artifact_id }}_current_user"
+
+let currentUserCache = readCurrentUser()
+let currentUserPromise = null
+let hasValidatedCurrentUser = false
+
+function normalizeRole(role) {
+  if (!role) {
+    return ""
+  }
+  const renderedRole = String(role).trim().toUpperCase()
+  if (!renderedRole) {
+    return ""
+  }
+  return renderedRole.startsWith("ROLE_") ? renderedRole : `ROLE_${renderedRole}`
+}
+
+function readCurrentUser() {
+  const rawValue = localStorage.getItem(USER_KEY)
+  if (!rawValue) {
+    return null
+  }
+  try {
+    return JSON.parse(rawValue)
+  } catch (error) {
+    localStorage.removeItem(USER_KEY)
+    return null
+  }
+}
+
+export function getToken() {
+  return localStorage.getItem(TOKEN_KEY)
+}
+
+export function setToken(token) {
+  localStorage.setItem(TOKEN_KEY, token)
+  clearCurrentUser()
+}
+
+export function getCurrentUser() {
+  return currentUserCache
+}
+
+export function setCurrentUser(user) {
+  currentUserCache = user
+  localStorage.setItem(USER_KEY, JSON.stringify(user))
+  hasValidatedCurrentUser = true
+}
+
+export function clearCurrentUser() {
+  currentUserCache = null
+  hasValidatedCurrentUser = false
+  localStorage.removeItem(USER_KEY)
+}
+
+export function clearAuthState() {
+  localStorage.removeItem(TOKEN_KEY)
+  clearCurrentUser()
+}
+
+export async function ensureCurrentUser(force = false) {
+  const token = getToken()
+  if (!token) {
+    clearCurrentUser()
+    return null
+  }
+  if (!force && hasValidatedCurrentUser && currentUserCache) {
+    return currentUserCache
+  }
+  if (!currentUserPromise) {
+    currentUserPromise = fetchAuthMe()
+      .then(user => {
+        setCurrentUser(user)
+        return user
+      })
+      .catch(error => {
+        clearAuthState()
+        throw error
+      })
+      .finally(() => {
+        currentUserPromise = null
+      })
+  }
+  return currentUserPromise
+}
+
+export function hasAccess(rule, currentUser = getCurrentUser()) {
+  if (!rule || !rule.enabled) {
+    return true
+  }
+  const requiredRoles = Array.isArray(rule.roles) ? rule.roles : []
+  const requiredPermissions = Array.isArray(rule.permissions) ? rule.permissions : []
+  if (requiredRoles.length === 0 && requiredPermissions.length === 0) {
+    return true
+  }
+  if (!currentUser) {
+    return false
+  }
+  const currentRoles = new Set((currentUser.roles || []).map(normalizeRole))
+  const currentPermissions = new Set(currentUser.permissions || [])
+  const matchedRole = requiredRoles.some(role => currentRoles.has(normalizeRole(role)))
+  const matchedPermission = requiredPermissions.some(permission => currentPermissions.has(permission))
+  return matchedRole || matchedPermission
+}
+
+export function findFirstAccessiblePath(routes) {
+  const accessiblePaths = []
+  ;(routes || []).forEach(route => {
+    if (route.path === "/login" || route.path === "*") {
+      return
+    }
+    if (route.children && route.children.length > 0) {
+      route.children.forEach(child => {
+        const childPath = child.path.startsWith("/")
+          ? child.path
+          : `${route.path === "/" ? "" : route.path}/${child.path}`.replace(/\/+/g, "/")
+        if (hasAccess(child.meta && child.meta.auth)) {
+          accessiblePaths.push(childPath.startsWith("/") ? childPath : `/${childPath}`)
+        }
+      })
+      return
+    }
+    if (hasAccess(route.meta && route.meta.auth)) {
+      accessiblePaths.push(route.path)
+    }
+  })
+  return accessiblePaths[0] || "/dashboard"
+}

@@ -22,17 +22,17 @@
           <span slot="title">{{ messages.dashboard_title }}</span>
         </el-menu-item>
 
-{% for group in menu_groups %}        <el-submenu index="menu-group-{{ loop.index }}">
+        <el-submenu v-for="group in filteredMenuGroups" :key="group.title" :index="group.title">
           <template slot="title">
-            <i class="{{ group['icon'] }}"></i>
-            <span>{{ group['title'] }}</span>
+            <i :class="group.icon"></i>
+            <span v-text="group.title"></span>
           </template>
-{% for item in group['items'] %}          <el-menu-item index="{{ item['path'] }}">
-            <i class="{{ item['icon'] }}"></i>
-            <span slot="title">{{ item['title'] }}</span>
+          <el-menu-item v-for="item in group.items" :key="item.path" :index="item.path">
+            <i :class="item.icon"></i>
+            <span slot="title" v-text="item.title"></span>
           </el-menu-item>
-{% endfor %}        </el-submenu>
-{% endfor %}      </el-menu>
+        </el-submenu>
+      </el-menu>
     </aside>
 
     <section class="layout-main">
@@ -52,9 +52,29 @@
 </template>
 
 <script>
+{% if project.security.enabled %}
+import { hasAccess } from "@/utils/auth"
+{% endif %}
+
+const menuGroups = {{ menu_groups|tojson }}
+
 export default {
   name: "Layout",
   computed: {
+{% if project.security.enabled %}
+    filteredMenuGroups() {
+      return menuGroups
+        .map(group => ({
+          ...group,
+          items: group.items.filter(item => hasAccess(item.auth))
+        }))
+        .filter(group => group.items.length > 0)
+    },
+{% else %}
+    filteredMenuGroups() {
+      return menuGroups
+    },
+{% endif %}
     currentTitle() {
       return this.$route.meta && this.$route.meta.title
         ? this.$route.meta.title

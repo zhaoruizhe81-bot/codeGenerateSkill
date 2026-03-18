@@ -6,17 +6,17 @@
     </section>
 
     <section class="dashboard-grid">
-{% for card in dashboard_cards %}      <el-card class="dashboard-card" shadow="never">
+      <el-card v-for="card in visibleDashboardCards" :key="card.title" class="dashboard-card" shadow="never">
         <div class="card-header">
           <div>
-            <h3>{{ card.title }}</h3>
-            <p>{{ card.description }}</p>
+            <h3 v-text="card.title"></h3>
+            <p v-text="card.description"></p>
           </div>
-          <i class="{{ card.icon }}"></i>
+          <i :class="card.icon"></i>
         </div>
-        <div class="dashboard-value">{{ card.value }}</div>
+        <div class="dashboard-value" v-text="card.value"></div>
       </el-card>
-{% endfor %}    </section>
+    </section>
 
     <el-card class="dashboard-links" shadow="never">
       <div class="card-header">
@@ -27,21 +27,46 @@
       </div>
 
       <div class="dashboard-link-list">
-{% for page in table_pages %}        <router-link to="{{ page.route_path }}" class="dashboard-link-item">
-          <span>{{ page.title }}</span>
+        <router-link v-for="page in visibleQuickLinks" :key="page.route_path" :to="page.route_path" class="dashboard-link-item">
+          <span v-text="page.title"></span>
           <i class="el-icon-arrow-right"></i>
         </router-link>
-{% endfor %}{% for page in relation_pages %}        <router-link to="{{ page.route_path }}" class="dashboard-link-item">
-          <span>{{ page.title }}</span>
-          <i class="el-icon-arrow-right"></i>
-        </router-link>
-{% endfor %}      </div>
+      </div>
     </el-card>
   </div>
 </template>
 
 <script>
+{% if project.security.enabled %}
+import { hasAccess } from "@/utils/auth"
+{% endif %}
+
+const dashboardCards = {{ dashboard_cards|tojson }}
+const quickLinks = {{ dashboard_links|tojson }}
+
 export default {
-  name: "DashboardPage"
+  name: "DashboardPage",
+  computed: {
+{% if project.security.enabled %}
+    visibleQuickLinks() {
+      return quickLinks.filter(page => page.menu_visible && hasAccess(page.route_auth))
+    },
+{% else %}
+    visibleQuickLinks() {
+      return quickLinks.filter(page => page.menu_visible)
+    },
+{% endif %}
+    visibleDashboardCards() {
+      return dashboardCards.map(card => {
+        if (card.icon === "el-icon-s-grid") {
+          return { ...card, value: this.visibleQuickLinks.filter(link => !link.route_path.startsWith("/relations/")).length }
+        }
+        if (card.icon === "el-icon-connection") {
+          return { ...card, value: this.visibleQuickLinks.filter(link => link.route_path.startsWith("/relations/")).length }
+        }
+        return card
+      })
+    }
+  }
 }
 </script>

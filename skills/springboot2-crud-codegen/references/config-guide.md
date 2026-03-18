@@ -72,6 +72,7 @@
   - `POST /api/auth/register` — 注册新账号（BCrypt 加密密码，自动绑定 `rbac.defaultRoles` 中的角色；未配置时默认 `ROLE_USER`）
   - `GET /api/auth/me` — 凭 Token 返回当前用户名 + 角色 + 权限列表（便于前端渲染菜单权限）
   - `POST /api/auth/change-password` — 先 BCrypt 校验旧密码，再加密存储新密码
+- 如果同时开启了 `frontend.enabled`，生成的 Vue 2 前端会在登录后和受保护路由跳转时调用 `/api/auth/me`，并把返回的 `roles` / `permissions` 用于路由守卫、侧边菜单过滤、仪表盘快捷入口过滤，以及 CRUD 页面新增/编辑/删除按钮显隐。
 - Parser 会隐式生成 `sys_user`, `sys_role`, `sys_user_role`, `sys_menu_permission`, `sys_role_permission` 这 5 张表的 Entity, Mapper, Service, Controller。
 - 默认在 `init.sql` 里塞入账号 `admin` / 密码 `123456`（经过 BCrypt 加密，可直接登录）的数据。
 - `init.sql` 还会自动补齐：
@@ -102,6 +103,8 @@
 - 如果没有写 `auth.permissions`，Parser 会自动按 `<table_name>:view` 这类规则兜底补全。
 - `roles` 中可以写 `ADMIN` 或 `ROLE_ADMIN`，最终都会按同一套角色语义处理。
 - 生成 Controller 时，会拼接为：`@PreAuthorize("hasAnyRole('ADMIN', 'MANAGER') or hasAuthority('product:add')")`。
+- 如果前端也启用，同一份 `auth` 会被传到前端模板，生成与后端一致的页面访问和按钮显隐规则；前端做的是体验层过滤，最终安全边界仍以后端接口权限为准。
+- 同时，表级 `POST /import` 会复用 create 对应的角色/权限规则，不再只是“登录即可导入”。
 
 ## 全局功能特性 (Global Features)
 
@@ -218,6 +221,7 @@
 }
 ```
 渲染层在遇到这两个组件时，不仅会输出 `<el-upload>`，还会自动获取 JWT Token (`localStorage.getItem('token')`) 注入请求头，防止上传接口报 401 错误。
+在开启安全时，Token 会按 `<artifactId>_token` 的 key 存储，并由生成的前端鉴权工具统一管理。
 
 ## 智能前端表单校验 (Vue Form Validation)
 

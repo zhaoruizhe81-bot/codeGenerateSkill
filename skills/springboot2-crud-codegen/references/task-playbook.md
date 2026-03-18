@@ -116,3 +116,13 @@
    - `codegen/render.py`
    - 相关前端模板
    - 生成后的 `frontend/src/views/*`
+6. 如果问题与权限有关，额外检查：
+   - 生成后的 `frontend/src/api/auth.js`
+   - 生成后的 `frontend/src/utils/auth.js`
+   - 生成后的 `frontend/src/router/index.js`
+   - 生成后的 `frontend/src/layout/Layout.vue`
+   - 生成后的 `frontend/src/views/*/index.vue`
+7. 不要只验证“有没有 token”；要验证 `/auth/me` 的 `roles` / `permissions` 是否真的参与了路由守卫、菜单过滤、仪表盘入口过滤和 CRUD 按钮显隐。
+8. 如果继续做权限优化，再额外验证：
+   - 登录成功后是否会回跳到 `redirect` 指向的原始地址
+   - `POST /import` 是否和 create 使用同一套角色/权限规则

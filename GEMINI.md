@@ -58,6 +58,8 @@
 - **Validation First:** All configuration changes must be reflected in `codegen/schema.py` and validated in `codegen/parser.py`.
 - **Template Consistency:** When modifying generated Java structure, ensure template paths and imports in `render.py` remain synchronized.
 - **Security Consistency:** RBAC role names are normalized to `ROLE_*` in the parser. Keep config docs, seed data, `@PreAuthorize` expressions, and generated runtime authorities aligned.
+- **Frontend RBAC Consistency:** When frontend generation is enabled together with security, keep `/auth/me`, token/current-user storage, route guards, menu filtering, dashboard quick links, and CRUD button visibility aligned with backend `@PreAuthorize` semantics.
+- **CRUD Edge Permissions:** Keep generated import endpoints and frontend method-level guards aligned with create/update/delete visibility so UI affordances and backend protections do not drift.
 - **Swagger Compatibility:** If Swagger/Knife4j behavior changes, update both dependency/config generation and the generated security allowlist; Boot 2.6+ requires `ant_path_matcher`.
 
 ### Testing Practices
@@ -66,6 +68,7 @@
 - **Renderer Tests:** Assert on specific snippets of generated file content or paths.
 - **Syntax Check:** Use `python -m compileall codegen tests` for a quick syntax gate.
 - **Security Regression Checks:** When touching RBAC or auth generation, assert on generated `init.sql`, `UserDetailsServiceImpl`, `WebSecurityConfig`, and auth-controller behavior together.
+- **Frontend Security Regression Checks:** When touching frontend RBAC generation, assert on generated `frontend/src/api/auth.js`, `frontend/src/utils/auth.js`, `frontend/src/router/index.js`, `frontend/src/layout/Layout.vue`, and at least one generated CRUD page.
 
 ---
 

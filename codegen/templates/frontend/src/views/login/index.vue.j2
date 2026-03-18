@@ -2,7 +2,7 @@
   <div class="login-container">
     <el-form ref="loginForm" :model="loginForm" :rules="loginRules" class="login-form" auto-complete="on" label-position="left">
       <div class="title-container">
-        <h3 class="title">{{ project.frontend.appTitle }} Login</h3>
+        <h3 class="title">{{ frontend.app_title }} Login</h3>
       </div>
 
       <el-form-item prop="username">
@@ -37,6 +37,7 @@
 
 <script>
 import request from '@/utils/request'
+import { setToken } from "@/utils/auth"
 
 export default {
   name: 'Login',
@@ -63,8 +64,9 @@ export default {
             method: 'post',
             data: this.loginForm
           }).then(token => {
-            localStorage.setItem('{{ project.artifact_id }}_token', token)
-            this.$router.push({ path: '/' })
+            setToken(token)
+            const redirectPath = this.$route.query.redirect || '/'
+            this.$router.push({ path: redirectPath })
             this.loading = false
           }).catch(() => {
             this.loading = false

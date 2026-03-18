@@ -133,6 +133,8 @@ This file is for coding agents working in this repository.
 - Preserve stable output when input order is unchanged.
 - Security role config is normalized to `ROLE_*` during parsing; config may accept either `ADMIN` or `ROLE_ADMIN`, but generated runtime behavior must stay consistent with Spring Security role semantics.
 - When `security.enabled = true`, default registration roles must be reflected consistently across parser seed data, generated `init.sql`, and `UserDetailsServiceImpl`.
+- When `security.enabled = true` and `frontend.enabled = true`, generated Vue 2 code must consume `/auth/me` consistently across route guards, sidebar/menu filtering, dashboard links, and CRUD button visibility.
+- Table-scoped `POST /import` endpoints must stay aligned with create-level RBAC rules; do not leave them as authenticated-only when create is restricted.
 - When `global.enableSwagger = true`, generated `application.yml` and security config must include the Spring Boot 2.6+ compatibility and docs-endpoint allowlist needed for Knife4j/Springfox startup and access.
 
 ## Testing Guidance For Changes
@@ -157,3 +159,4 @@ This file is for coding agents working in this repository.
 - Keep edits small and localized.
 - If you add new conventions, document them here so the next agent inherits them.
 - For RBAC fixes, verify both generated Java and generated `init.sql`; seed data mismatches are a common source of “generation succeeds but runtime is broken”.
+- For frontend RBAC fixes, verify generated `frontend/src/api/auth.js`, `frontend/src/utils/auth.js`, `frontend/src/router/index.js`, `frontend/src/layout/Layout.vue`, and the affected `frontend/src/views/*/index.vue` files together.

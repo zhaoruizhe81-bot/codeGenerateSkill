@@ -11,7 +11,7 @@
           <h3>{{ page.title }}</h3>
           <p>{{ messages.table_toolbar_description }}</p>
         </div>
-        <el-button type="primary" icon="el-icon-plus" @click="openCreate">{{ messages.button_new }}</el-button>
+        <el-button v-if="canCreate" type="primary" icon="el-icon-plus" @click="openCreate">{{ messages.button_new }}</el-button>
       </div>
 
       <el-form :inline="true" :model="queryForm" class="query-form">
@@ -82,8 +82,8 @@
 {% endfor %}        <el-table-column label="{{ messages.table_actions }}" width="220" fixed="right">
           <template slot-scope="scope">
             <el-button type="text" @click="openDetail(scope.row)">{{ messages.button_detail }}</el-button>
-            <el-button type="text" @click="openEdit(scope.row)">{{ messages.button_edit }}</el-button>
-            <el-button type="text" style="color: #ef4444" @click="handleDelete(scope.row)">{{ messages.button_delete }}</el-button>
+            <el-button v-if="canUpdate" type="text" @click="openEdit(scope.row)">{{ messages.button_edit }}</el-button>
+            <el-button v-if="canDelete" type="text" style="color: #ef4444" @click="handleDelete(scope.row)">{{ messages.button_delete }}</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -131,7 +131,7 @@
 {% endfor %}      </el-form>
       <span slot="footer">
         <el-button @click="dialogVisible = false">{{ messages.button_cancel }}</el-button>
-        <el-button type="primary" @click="submitForm">{{ messages.button_save }}</el-button>
+        <el-button v-if="canSave" type="primary" @click="submitForm">{{ messages.button_save }}</el-button>
       </span>
     </el-dialog>
 
@@ -158,12 +158,17 @@ import {
   {{ page.api_function_names['delete'] }}
 } from "@/api/{{ page.resource_name }}"
 import { formatBoolean, formatDate, formatDateTime, formatValue } from "@/utils/format"
+{% if project.security.enabled %}import { hasAccess } from "@/utils/auth"
+{% endif %}
 {% if page.has_dictionaries %}import { loadDictionaryOptions, formatDictionaryValue } from "@/utils/dictionary"
 {% endif %}
 
 const createEmptyForm = () => ({
 {% for field in page.form_fields %}  {{ field.property_name }}: {{ field.default_js }}{% if not loop.last %},{% endif %}
 {% endfor %}})
+{% if project.security.enabled %}
+const actionAuth = {{ page.action_auth|tojson }}
+{% endif %}
 
 const createDefaultQuery = () => ({
   page: 1,
@@ -179,6 +184,35 @@ const sortFieldMap = {
 
 export default {
   name: "{{ page.route_name }}",
+  computed: {
+{% if project.security.enabled %}
+    canCreate() {
+      return hasAccess(actionAuth.create)
+    },
+    canUpdate() {
+      return hasAccess(actionAuth.update)
+    },
+    canDelete() {
+      return hasAccess(actionAuth.delete)
+    },
+    canSave() {
+      return this.dialogMode === "create" ? this.canCreate : this.canUpdate
+    },
+{% else %}
+    canCreate() {
+      return true
+    },
+    canUpdate() {
+      return true
+    },
+    canDelete() {
+      return true
+    },
+    canSave() {
+      return true
+    },
+{% endif %}
+  },
   data() {
     return {
       loading: false,
@@ -285,6 +319,11 @@ export default {
 {% else %}      return { prop, order }
 {% endif %}    },
     openCreate() {
+{% if project.security.enabled %}      if (!this.canCreate) {
+        this.$message.error("{{ messages.request_forbidden }}")
+        return
+      }
+{% endif %}
       this.dialogMode = "create"
       this.dialogTitle = "{{ messages.dialog_new_title|replace("{title}", page.title) }}"
       this.currentId = null
@@ -295,6 +334,11 @@ export default {
       })
     },
     async openEdit(row) {
+{% if project.security.enabled %}      if (!this.canUpdate) {
+        this.$message.error("{{ messages.request_forbidden }}")
+        return
+      }
+{% endif %}
       const data = await {{ page.api_function_names['fetch_one'] }}(row.{{ page.primary_key_property }})
       this.dialogMode = "edit"
       this.dialogTitle = "{{ messages.dialog_edit_title|replace("{title}", page.title) }}"
@@ -315,6 +359,11 @@ export default {
 {% endfor %}      }
     },
     async submitForm() {
+{% if project.security.enabled %}      if (!this.canSave) {
+        this.$message.error("{{ messages.request_forbidden }}")
+        return
+      }
+{% endif %}
       try {
         await this.$refs.formRef.validate()
       } catch (e) {
@@ -332,6 +381,11 @@ export default {
       this.loadData()
     },
     async handleDelete(row) {
+{% if project.security.enabled %}      if (!this.canDelete) {
+        this.$message.error("{{ messages.request_forbidden }}")
+        return
+      }
+{% endif %}
       await this.$confirm("{{ messages.confirm_delete }}", "{{ messages.confirm_warning_title }}", {
         type: "warning"
       })
